@@ -1,40 +1,44 @@
 <?php
-// Koneksi ke database
-$host = "localhost";
-$db_name = "penggajian";
-$username = "root";
-$password = "";
-$conn = null;
+session_start();
 
-try {
-    $conn = new PDO("mysql:host=" . $host . ";dbname=" . $db_name, $username, $password);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $exception) {
-    echo "Koneksi gagal: " . $exception->getMessage();
-    exit;
-}
+require_once 'Database.php';
 
-// Mengambil NIP dari parameter URL
-$NIP = isset($_GET['NIP']) ? $_GET['NIP'] : ''; // Mengambil NIP dari query string URL
+// ======================
+// KONEKSI DATABASE
+// ======================
+$db = new Database();
+$conn = $db->getConnection();
 
-// Menyusun query untuk mengambil data dari tabel admin_penggajian berdasarkan NIP
-$sql = "SELECT * FROM admin_penggajian WHERE NIP = :NIP";  
-$stmt = $conn->prepare($sql);
+// ======================
+// AMBIL NIP
+// ======================
+$NIP = isset($_GET['NIP']) ? $_GET['NIP'] : '';
 
-// Mengikat parameter NIP yang diterima dari URL
-$stmt->bindParam(':NIP', $NIP);
+// ======================
+// QUERY DATA
+// ======================
+$stmt = $conn->prepare("
+    SELECT * 
+    FROM admin_penggajian 
+    WHERE NIP = :nip
+");
 
-$stmt->execute();
+$stmt->execute([
+    ':nip' => $NIP
+]);
 
-// Mengambil data hasil query
 $gaji = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// Periksa apakah data ditemukan
+// ======================
+// VALIDASI DATA
+// ======================
 if (!$gaji) {
+
     echo "<div class='info-container'>";
-    echo "<p>Data gaji untuk NIP <strong>" . htmlspecialchars($nip, ENT_QUOTES, 'UTF-8') . "</strong> tidak ditemukan.</p>";
+    echo "<p>Data gaji untuk NIP <strong>" . htmlspecialchars($NIP, ENT_QUOTES, 'UTF-8') . "</strong> tidak ditemukan.</p>";
     echo "<button onclick=\"window.location.href='admin_gaji.php'\">Kembali</button>";
     echo "</div>";
+
     exit;
 }
 ?>
@@ -42,120 +46,124 @@ if (!$gaji) {
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detail Gaji Karyawan</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
+<title>Detail Gaji Karyawan</title>
 
-        .header h2 {
-            margin: 0;
-            font-size: 24px;
-            color: #333;
-        }
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+}
 
-        .info-container {
-            margin: 20px;
-            padding: 10px;
-            background-color: #fff;
-            border: 1px solid #ddd;
-        }
+.header {
+    text-align: center;
+    margin-bottom: 20px;
+}
 
-        .info-container p {
-            margin: 5px 0;
-        }
+.header h2 {
+    margin: 0;
+    font-size: 24px;
+    color: #333;
+}
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-            background-color: #fff;
-        }
+.info-container {
+    margin: 20px;
+    padding: 10px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+}
 
-        table, th, td {
-            border: 1px solid #ddd;
-        }
+.info-container p {
+    margin: 5px 0;
+}
 
-        th, td {
-            padding: 10px;
-            text-align: left;
-        }
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    background-color: #fff;
+}
 
-        th {
-            background-color: #f2f2f2;
-            color: #333;
-        }
+table, th, td {
+    border: 1px solid #ddd;
+}
 
-        td {
-            color: #555;
-        }
+th, td {
+    padding: 10px;
+    text-align: left;
+}
 
-        .button-container {
-            text-align: left;
-            margin-top: 20px;
-            margin-left: 20px;
-        }
+th {
+    background-color: #f2f2f2;
+    color: #333;
+}
 
-        .button-container button {
-            background-color: #555;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            margin-right: 10px;
-            border-radius: 5px;
-        }
+td {
+    color: #555;
+}
 
-        .button-container button:hover {
-            background-color: #333;
-        }
+.button-container {
+    text-align: left;
+    margin-top: 20px;
+    margin-left: 20px;
+}
 
-        /* Gaya khusus untuk saat mencetak */
-        @media print {
-            body {
-                font-family: 'Courier New', Courier, monospace; /* Font yang lebih cocok untuk cetakan */
-                font-size: 12px;
-            }
+.button-container button {
+    background-color: #555;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-right: 10px;
+    border-radius: 5px;
+}
 
-            .button-container {
-                display: none; /* Sembunyikan tombol saat mencetak */
-            }
+.button-container button:hover {
+    background-color: #333;
+}
 
-            .info-container {
-                margin: 0;
-                padding: 0;
-            }
+/* PRINT */
+@media print {
 
-            .header h2 {
-                font-size: 28px; /* Ukuran font header lebih besar saat print */
-            }
+    body {
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 12px;
+    }
 
-            table {
-                font-size: 12px;
-                border: 1px solid #333; /* Warna border lebih gelap saat print */
-            }
+    .button-container {
+        display: none;
+    }
 
-            th, td {
-                padding: 8px;
-            }
+    .info-container {
+        margin: 0;
+        padding: 0;
+    }
 
-            th {
-                background-color: #ddd; /* Warna latar belakang header tabel */
-            }
-        }
-    </style>
+    .header h2 {
+        font-size: 28px;
+    }
+
+    table {
+        font-size: 12px;
+        border: 1px solid #333;
+    }
+
+    th, td {
+        padding: 8px;
+    }
+
+    th {
+        background-color: #ddd;
+    }
+}
+</style>
 </head>
+
 <body>
 
 <div class="header">
@@ -163,13 +171,31 @@ if (!$gaji) {
 </div>
 
 <div class="info-container">
-    <p><strong>NIP:</strong> <?php echo htmlspecialchars($gaji['NIP'], ENT_QUOTES, 'UTF-8'); ?></p>
-    <p><strong>Nama Karyawan:</strong> <?php echo htmlspecialchars($gaji['nama_karyawan'], ENT_QUOTES, 'UTF-8'); ?></p>
-    <p><strong>Posisi:</strong> <?php echo $gaji['posisi']; ?></p>
-    <p><strong>Periode:</strong> <?php echo $gaji['periode']; ?></p>
+
+    <p>
+        <strong>NIP:</strong>
+        <?= htmlspecialchars($gaji['NIP'], ENT_QUOTES, 'UTF-8'); ?>
+    </p>
+
+    <p>
+        <strong>Nama Karyawan:</strong>
+        <?= htmlspecialchars($gaji['nama_karyawan'], ENT_QUOTES, 'UTF-8'); ?>
+    </p>
+
+    <p>
+        <strong>Posisi:</strong>
+        <?= htmlspecialchars($gaji['posisi'], ENT_QUOTES, 'UTF-8'); ?>
+    </p>
+
+    <p>
+        <strong>Periode:</strong>
+        <?= htmlspecialchars($gaji['periode'], ENT_QUOTES, 'UTF-8'); ?>
+    </p>
+
 </div>
 
 <table>
+
     <tr>
         <th>Periode</th>
         <th>Tanggal Gaji</th>
@@ -182,23 +208,59 @@ if (!$gaji) {
         <th>Status</th>
         <th>Total</th>
     </tr>
+
     <tr>
-        <td><?php echo $gaji['periode']; ?></td>
-        <td><?php echo $gaji['tanggal_gaji']; ?></td>
-        <td>Rp <?php echo number_format($gaji['gaji_pokok'] ?: 0, 0, ',', '.'); ?></td>
-        <td>Rp <?php echo number_format($gaji['pot_BPJS'] ?: 0, 0, ',', '.'); ?></td>
-        <td>Rp <?php echo number_format($gaji['pot_absen'] ?: 0, 0, ',', '.'); ?></td>
-        <td>Rp <?php echo number_format($gaji['transportasi'] ?: 0, 0, ',', '.'); ?></td>
-        <td><?php echo $gaji['lembur'] ?: 0; ?></td>
-        <td>Rp <?php echo number_format($gaji['gaji_lembur_per_jam'] ?: 0, 0, ',', '.'); ?></td>
-        <td><?php echo htmlspecialchars($gaji['status'], ENT_QUOTES, 'UTF-8'); ?></td>
-        <td>Rp <?php echo number_format($gaji['total'] ?: 0, 0, ',', '.'); ?></td>
+
+        <td><?= htmlspecialchars($gaji['periode']); ?></td>
+
+        <td><?= htmlspecialchars($gaji['tanggal_gaji']); ?></td>
+
+        <td>
+            Rp <?= number_format($gaji['gaji_pokok'] ?: 0, 0, ',', '.'); ?>
+        </td>
+
+        <td>
+            Rp <?= number_format($gaji['pot_BPJS'] ?: 0, 0, ',', '.'); ?>
+        </td>
+
+        <td>
+            Rp <?= number_format($gaji['pot_absen'] ?: 0, 0, ',', '.'); ?>
+        </td>
+
+        <td>
+            Rp <?= number_format($gaji['transportasi'] ?: 0, 0, ',', '.'); ?>
+        </td>
+
+        <td>
+            <?= $gaji['lembur'] ?: 0; ?>
+        </td>
+
+        <td>
+            Rp <?= number_format($gaji['gaji_lembur_per_jam'] ?: 0, 0, ',', '.'); ?>
+        </td>
+
+        <td>
+            <?= htmlspecialchars($gaji['status'], ENT_QUOTES, 'UTF-8'); ?>
+        </td>
+
+        <td>
+            Rp <?= number_format($gaji['total'] ?: 0, 0, ',', '.'); ?>
+        </td>
+
     </tr>
+
 </table>
 
 <div class="button-container">
-    <button onclick="window.location.href='admin_gaji.php'">Kembali</button>
-    <button onclick="window.print()">Print</button>
+
+    <button onclick="window.location.href='admin_gaji.php'">
+        Kembali
+    </button>
+
+    <button onclick="window.print()">
+        Print
+    </button>
+
 </div>
 
 </body>
