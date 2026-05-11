@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-require_once 'config.php';
+require_once "config.php";
 
 require_once "template/header.php";
 require_once "template/sidebar.php";
@@ -14,7 +14,7 @@ if (!isset($_SESSION['NIP'])) {
 
     header("Location: form_login.php");
 
-    exit;
+    exit();
 }
 
 // ======================
@@ -23,40 +23,38 @@ if (!isset($_SESSION['NIP'])) {
 $nipLogin = $_SESSION['NIP'];
 
 // ======================
-// ARRAY GRAFIK
+// ARRAY DATA
 // ======================
 $labels = [];
 
-$salaryData = [];
+$data = [];
 
-// ======================
-// AMBIL DATA GAJI
-// ======================
 try {
 
+    // ======================
+    // QUERY ABSENSI
+    // ======================
     $stmt = $koneksi->prepare("
         SELECT
-            periode,
-            salary
-        FROM admin_penggajian
+            DATE(jam_masuk) AS tanggal,
+            COUNT(*) AS jumlah_login
+        FROM admin_absen
         WHERE NIP = :nip
-        ORDER BY tanggal_gaji ASC
+        GROUP BY DATE(jam_masuk)
+        ORDER BY tanggal DESC
     ");
 
     $stmt->execute([
         ':nip' => $nipLogin
     ]);
 
-    $gajiData =
-        $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    foreach ($gajiData as $row) {
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
 
         $labels[] =
-            $row['periode'];
+            $row['tanggal'];
 
-        $salaryData[] =
-            $row['salary'];
+        $data[] =
+            $row['jumlah_login'];
     }
 
 } catch (PDOException $e) {
@@ -78,11 +76,11 @@ try {
       content="width=device-width, initial-scale=1.0">
 
 <title>
-    Dashboard Karyawan
+    Grafik Absen Karyawan
 </title>
 
-<link rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet">
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -100,8 +98,8 @@ try {
 .card-header {
     background-color: #343a40;
     color: white;
-    font-weight: bold;
     text-align: center;
+    font-weight: bold;
 }
 
 </style>
@@ -112,21 +110,23 @@ try {
 
 <div class="container">
 
-    <!-- ======================
-         GRAFIK GAJI
-    ======================= -->
     <div class="card">
 
         <div class="card-header">
 
-            Grafik Gaji Karyawan
+            <h4 class="card-title">
+
+                Grafik Absen Karyawan
+
+            </h4>
 
         </div>
 
         <div class="card-body">
 
-            <canvas id="salaryChart"
-                    height="100">
+            <canvas id="attendanceChart"
+                    width="400"
+                    height="200">
             </canvas>
 
         </div>
@@ -137,17 +137,14 @@ try {
 
 <script>
 
-// ======================
-// GRAFIK GAJI
-// ======================
 const ctx =
     document
-    .getElementById('salaryChart')
+    .getElementById('attendanceChart')
     .getContext('2d');
 
 new Chart(ctx, {
 
-    type: 'line',
+    type: 'bar',
 
     data: {
 
@@ -157,22 +154,18 @@ new Chart(ctx, {
         datasets: [{
 
             label:
-                'Total Gaji',
+                'Jumlah Login Karyawan',
 
             data:
-                <?= json_encode($salaryData); ?>,
-
-            borderColor:
-                'rgba(54, 162, 235, 1)',
+                <?= json_encode($data); ?>,
 
             backgroundColor:
-                'rgba(54, 162, 235, 0.2)',
+                'rgba(111, 23, 60, 0.2)',
 
-            borderWidth: 2,
+            borderColor:
+                'rgb(41, 128, 0)',
 
-            fill: true,
-
-            tension: 0.3
+            borderWidth: 1
         }]
     },
 
@@ -182,7 +175,24 @@ new Chart(ctx, {
 
         scales: {
 
+            x: {
+
+                title: {
+
+                    display: true,
+
+                    text: 'Tanggal'
+                }
+            },
+
             y: {
+
+                title: {
+
+                    display: true,
+
+                    text: 'Jumlah Login'
+                },
 
                 beginAtZero: true
             }

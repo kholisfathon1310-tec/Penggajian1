@@ -1,385 +1,192 @@
-<!-- MODAL INPUT GAJI -->
-<div class="modal fade"
-     id="inputGajiModal"
-     tabindex="-1"
-     aria-hidden="true">
+<form action="simpan_gaji.php"
+      method="POST">
 
-    <div class="modal-dialog modal-lg">
+    <!-- NIP -->
+    <div class="mb-3">
 
-        <div class="modal-content">
+        <label class="form-label">
+            NIP
+        </label>
 
-            <!-- HEADER -->
-            <div class="modal-header">
+        <select class="form-control"
+                id="NIP"
+                name="NIP"
+                onchange="window.location.href='admin_input_gaji.php?NIP='+this.value"
+                required>
 
-                <h4 class="modal-title">
+            <option value="">
+                Pilih NIP
+            </option>
 
-                    Input Gaji Karyawan
+            <?php foreach ($nips as $nip): ?>
 
-                </h4>
+                <option value="<?= $nip['NIP']; ?>"
+                    <?= isset($NIP) && $NIP == $nip['NIP'] ? 'selected' : ''; ?>>
 
-                <button type="button"
-                        class="btn-close"
-                        data-bs-dismiss="modal">
-                </button>
+                    <?= $nip['NIP']; ?>
 
-            </div>
+                </option>
 
-            <!-- BODY -->
-            <div class="modal-body">
+            <?php endforeach; ?>
 
-                <form action="simpan_gaji.php"
-                      method="POST">
-
-                    <!-- NIP -->
-                    <div class="mb-3">
-
-                        <label class="form-label">
-
-                            NIP
-
-                        </label>
-
-                        <select class="form-control"
-                                id="NIP"
-                                name="NIP"
-                                required>
-
-                            <option value="">
-                                Pilih NIP
-                            </option>
-
-                            <?php foreach ($employees as $employee): ?>
-
-                                <option
-                                    value="<?= htmlspecialchars($employee['NIP']); ?>"
-                                    data-nama="<?= htmlspecialchars($employee['nama_user']); ?>"
-                                    data-hak="<?= htmlspecialchars($employee['hak']); ?>">
-
-                                    <?= htmlspecialchars($employee['NIP']); ?>
-
-                                </option>
-
-                            <?php endforeach; ?>
-
-                        </select>
-
-                    </div>
-
-                    <!-- NAMA -->
-                    <div class="mb-3">
-
-                        <label class="form-label">
-
-                            Nama
-
-                        </label>
-
-                        <input type="text"
-                               class="form-control"
-                               id="nama_user"
-                               name="nama_user"
-                               readonly
-                               required>
-
-                    </div>
-
-                    <!-- POSISI -->
-                    <div class="mb-3">
-
-                        <label class="form-label">
-
-                            Posisi
-
-                        </label>
-
-                        <input type="text"
-                               class="form-control"
-                               id="hak"
-                               name="hak"
-                               readonly
-                               required>
-
-                    </div>
-
-                    <!-- PERIODE -->
-                    <div class="mb-3">
-
-                        <label class="form-label">
-
-                            Periode
-
-                        </label>
-
-                        <select class="form-control"
-                                name="periode"
-                                required>
-
-                            <option value="">
-                                Pilih Periode
-                            </option>
-
-                            <option value="Januari 2026">
-                                Januari 2026
-                            </option>
-
-                            <option value="Februari 2026">
-                                Februari 2026
-                            </option>
-
-                            <option value="Maret 2026">
-                                Maret 2026
-                            </option>
-
-                            <option value="April 2026">
-                                April 2026
-                            </option>
-
-                        </select>
-
-                    </div>
-
-                    <!-- TANGGAL GAJI -->
-                    <div class="mb-3">
-
-                        <label class="form-label">
-
-                            Tanggal Gaji
-
-                        </label>
-
-                        <input type="date"
-                               class="form-control"
-                               name="tanggal_gaji"
-                               required>
-
-                    </div>
-
-                    <!-- GAJI POKOK -->
-                    <div class="mb-3">
-
-                        <label class="form-label">
-
-                            Gaji Pokok
-
-                        </label>
-
-                        <input type="number"
-                               class="form-control"
-                               id="base_salary"
-                               name="base_salary"
-                               required>
-
-                    </div>
-
-                    <!-- BPJS -->
-                    <div class="mb-3">
-
-                        <label class="form-label">
-
-                            Potongan BPJS
-
-                        </label>
-
-                        <input type="number"
-                               class="form-control"
-                               id="pot_BPJS"
-                               name="pot_BPJS"
-                               required>
-
-                    </div>
-
-                    <!-- TRANSPORTASI -->
-                    <div class="mb-3">
-
-                        <label class="form-label">
-
-                            Transportasi
-
-                        </label>
-
-                        <input type="number"
-                               class="form-control"
-                               id="transportasi"
-                               name="transportasi"
-                               required>
-
-                    </div>
-
-                    <!-- POTONGAN ABSEN -->
-                    <div class="mb-3">
-
-                        <label class="form-label">
-
-                            Potongan Absen
-
-                        </label>
-
-                        <input type="number"
-                               class="form-control"
-                               id="pot_absen"
-                               name="pot_absen"
-                               value="0">
-
-                    </div>
-
-                    <!-- LEMBUR -->
-                    <div class="mb-3">
-
-                        <label class="form-label">
-
-                            Lembur
-
-                        </label>
-
-                        <select class="form-control"
-                                id="lembur"
-                                name="lembur"
-                                required>
-
-                            <option value="Tidak">
-                                Tidak
-                            </option>
-
-                            <option value="Iya">
-                                Iya
-                            </option>
-
-                        </select>
-
-                    </div>
-
-                    <!-- TOTAL -->
-                    <div class="mb-3">
-
-                        <label class="form-label">
-
-                            Total Gaji
-
-                        </label>
-
-                        <input type="number"
-                               class="form-control"
-                               id="salary"
-                               readonly>
-
-                    </div>
-
-                    <!-- FOOTER -->
-                    <div class="modal-footer">
-
-                        <button type="button"
-                                class="btn btn-secondary"
-                                data-bs-dismiss="modal">
-
-                            Tutup
-
-                        </button>
-
-                        <button type="submit"
-                                class="btn btn-primary">
-
-                            Simpan Data
-
-                        </button>
-
-                    </div>
-
-                </form>
-
-            </div>
-
-        </div>
+        </select>
 
     </div>
 
-</div>
+    <!-- NAMA -->
+    <div class="mb-3">
 
-<script>
+        <label class="form-label">
+            Nama Karyawan
+        </label>
 
-document.addEventListener("DOMContentLoaded", function () {
+        <input type="text"
+               class="form-control"
+               name="nama_user"
+               value="<?= $name ?>"
+               readonly>
 
-    const nipSelect =
-        document.getElementById('NIP');
+    </div>
 
-    const namaInput =
-        document.getElementById('nama_user');
+    <!-- POSISI -->
+    <div class="mb-3">
 
-    const hakInput =
-        document.getElementById('hak');
+        <label class="form-label">
+            Posisi
+        </label>
 
-    // ======================
-    // AUTO FILL USER
-    // ======================
-    nipSelect.addEventListener('change', function () {
+        <input type="text"
+               class="form-control"
+               name="hak"
+               value="<?= $position ?>"
+               readonly>
 
-        const selected =
-            this.options[this.selectedIndex];
+    </div>
 
-        namaInput.value =
-            selected.getAttribute('data-nama');
+    <!-- PERIODE -->
+    <div class="mb-3">
 
-        hakInput.value =
-            selected.getAttribute('data-hak');
-    });
+        <label class="form-label">
+            Periode
+        </label>
 
-    // ======================
-    // HITUNG TOTAL
-    // ======================
-    function hitungTotal() {
+        <input type="text"
+               class="form-control"
+               name="periode"
+               required>
 
-        const baseSalary =
-            parseFloat(
-                document.getElementById('base_salary').value
-            ) || 0;
+    </div>
 
-        const bpjs =
-            parseFloat(
-                document.getElementById('pot_BPJS').value
-            ) || 0;
+    <!-- TANGGAL GAJI -->
+    <div class="mb-3">
 
-        const transportasi =
-            parseFloat(
-                document.getElementById('transportasi').value
-            ) || 0;
+        <label class="form-label">
+            Tanggal Gaji
+        </label>
 
-        const potAbsen =
-            parseFloat(
-                document.getElementById('pot_absen').value
-            ) || 0;
+        <input type="date"
+               class="form-control"
+               name="tanggal_gaji"
+               required>
 
-        const lembur =
-            document.getElementById('lembur').value;
+    </div>
 
-        const gajiLembur =
-            (lembur === 'Iya')
-            ? 50000
-            : 0;
+    <!-- GAJI POKOK -->
+    <div class="mb-3">
 
-        const total =
-            baseSalary
-            - bpjs
-            - potAbsen
-            + transportasi
-            + gajiLembur;
+        <label class="form-label">
+            Gaji Pokok
+        </label>
 
-        document.getElementById('salary').value =
-            total;
-    }
+        <input type="number"
+               class="form-control"
+               name="base_salary"
+               required>
 
-    document.getElementById('base_salary')
-        .addEventListener('input', hitungTotal);
+    </div>
 
-    document.getElementById('pot_BPJS')
-        .addEventListener('input', hitungTotal);
+    <!-- BPJS -->
+    <div class="mb-3">
 
-    document.getElementById('transportasi')
-        .addEventListener('input', hitungTotal);
+        <label class="form-label">
+            Potongan BPJS
+        </label>
 
-    document.getElementById('pot_absen')
-        .addEventListener('input', hitungTotal);
+        <input type="number"
+               class="form-control"
+               name="pot_BPJS"
+               required>
 
-    document.getElementById('lembur')
-        .addEventListener('change', hitungTotal);
-});
+    </div>
 
-</script>
+    <!-- TRANSPORT -->
+    <div class="mb-3">
+
+        <label class="form-label">
+            Transportasi
+        </label>
+
+        <input type="number"
+               class="form-control"
+               name="transportasi"
+               required>
+
+    </div>
+
+    <!-- POTONGAN ABSEN -->
+    <div class="mb-3">
+
+        <label class="form-label">
+            Potongan Absen
+        </label>
+
+        <input type="number"
+               class="form-control"
+               name="pot_absen"
+               required>
+
+    </div>
+
+    <!-- LEMBUR -->
+    <div class="mb-3">
+
+        <label class="form-label">
+            Lembur
+        </label>
+
+        <select class="form-control"
+                name="lembur"
+                required>
+
+            <option value="Tidak">
+                Tidak
+            </option>
+
+            <option value="Iya">
+                Iya
+            </option>
+
+        </select>
+
+    </div>
+
+    <!-- BUTTON -->
+    <div class="d-flex justify-content-between">
+
+        <a href="admin_gaji.php"
+           class="btn btn-secondary">
+
+            Kembali
+
+        </a>
+
+        <button type="submit"
+                class="btn btn-primary">
+
+            Simpan
+
+        </button>
+
+    </div>
+
+</form>

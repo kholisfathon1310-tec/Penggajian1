@@ -32,7 +32,8 @@ try {
 
     $stmtLastNip->execute();
 
-    $rowLastNip = $stmtLastNip->fetch(PDO::FETCH_ASSOC);
+    $rowLastNip =
+        $stmtLastNip->fetch(PDO::FETCH_ASSOC);
 
     // ======================
     // GENERATE NIP BARU
@@ -42,15 +43,24 @@ try {
         ? (int) substr($rowLastNip['last_nip'], 1)
         : 0;
 
-    $new_nip_number = $last_nip_number + 1;
+    $new_nip_number =
+        $last_nip_number + 1;
 
     $new_nip =
         "K" .
-        str_pad($new_nip_number, 4, "0", STR_PAD_LEFT);
+        str_pad(
+            $new_nip_number,
+            4,
+            "0",
+            STR_PAD_LEFT
+        );
 
 } catch (PDOException $e) {
 
-    die("Terjadi kesalahan database: " . $e->getMessage());
+    die(
+        "Terjadi kesalahan database: "
+        . $e->getMessage()
+    );
 }
 
 // ======================
@@ -67,7 +77,9 @@ class MainContent
         <div class="content container mt-5">
 
             <h4 class="text-center">
+
                 Data Staff
+
             </h4>
 
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -118,17 +130,29 @@ class MainContent
                 echo '
                 <tr>
 
-                    <td>' . htmlspecialchars($row['NIP']) . '</td>
+                    <td>
+                        ' . htmlspecialchars($row['NIP']) . '
+                    </td>
 
-                    <td>' . htmlspecialchars($row['nama_user']) . '</td>
+                    <td>
+                        ' . htmlspecialchars($row['nama_user']) . '
+                    </td>
 
-                    <td>' . htmlspecialchars($row['tgl_lahir']) . '</td>
+                    <td>
+                        ' . htmlspecialchars($row['tgl_lahir']) . '
+                    </td>
 
-                    <td>' . htmlspecialchars($row['alamat']) . '</td>
+                    <td>
+                        ' . htmlspecialchars($row['alamat']) . '
+                    </td>
 
-                    <td>' . htmlspecialchars($row['no_telp']) . '</td>
+                    <td>
+                        ' . htmlspecialchars($row['no_telp']) . '
+                    </td>
 
-                    <td>' . htmlspecialchars($row['hak']) . '</td>
+                    <td>
+                        ' . htmlspecialchars($row['hak']) . '
+                    </td>
 
                     <td>
 
@@ -293,25 +317,17 @@ class MainContent
 
                             </div>
 
+                            <!-- ROLE HANYA TAMPIL -->
                             <div class="mb-3">
 
                                 <label class="form-label">
                                     Hak
                                 </label>
 
-                                <select class="form-control"
-                                        name="hak"
-                                        required>
-
-                                    <option value="admin">
-                                        Admin
-                                    </option>
-
-                                    <option value="karyawan">
-                                        Karyawan
-                                    </option>
-
-                                </select>
+                                <input type="text"
+                                       class="form-control"
+                                       value="karyawan"
+                                       readonly>
 
                             </div>
 
@@ -450,31 +466,17 @@ class MainContent
 
                             </div>
 
+                            <!-- HAK READONLY -->
                             <div class="mb-3">
 
                                 <label class="form-label">
                                     Hak
                                 </label>
 
-                                <select class="form-control"
-                                        name="hak"
-                                        required>
-
-                                    <option value="admin"
-                                        ' . ($row['hak'] == 'admin' ? 'selected' : '') . '>
-
-                                        Admin
-
-                                    </option>
-
-                                    <option value="karyawan"
-                                        ' . ($row['hak'] == 'karyawan' ? 'selected' : '') . '>
-
-                                        Karyawan
-
-                                    </option>
-
-                                </select>
+                                <input type="text"
+                                       class="form-control"
+                                       value="' . htmlspecialchars($row['hak']) . '"
+                                       readonly>
 
                             </div>
 
@@ -591,7 +593,9 @@ class MainContent
 <meta name="viewport"
       content="width=device-width, initial-scale=1.0">
 
-<title>Data Staff</title>
+<title>
+    Data Staff
+</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css"
       rel="stylesheet">

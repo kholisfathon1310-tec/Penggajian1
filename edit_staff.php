@@ -1,13 +1,7 @@
 <?php
 session_start();
 
-require_once 'Database.php';
-
-// ======================
-// KONEKSI DATABASE
-// ======================
-$db = new Database();
-$koneksi = $db->getConnection();
+require_once "config.php";
 
 // ======================
 // CLASS STAFF
@@ -27,8 +21,8 @@ class Staff
     public function getStaffByNIP($NIP)
     {
         $stmt = $this->koneksi->prepare("
-            SELECT * 
-            FROM user 
+            SELECT *
+            FROM user
             WHERE NIP = :nip
         ");
 
@@ -42,25 +36,36 @@ class Staff
     // ======================
     // UPDATE STAFF
     // ======================
-    public function updateStaff($NIP, $nama_user, $tgl_lahir, $alamat, $no_telp, $hak)
-    {
+    public function updateStaff(
+        $NIP,
+        $nama_user,
+        $tgl_lahir,
+        $alamat,
+        $no_telp
+    ) {
+
         $stmt = $this->koneksi->prepare("
-            UPDATE user 
+            UPDATE user
             SET
+
                 nama_user = :nama_user,
                 tgl_lahir = :tgl_lahir,
                 alamat = :alamat,
-                no_telp = :no_telp,
-                hak = :hak
+                no_telp = :no_telp
+
             WHERE NIP = :nip
         ");
 
         return $stmt->execute([
+
             ':nama_user' => $nama_user,
+
             ':tgl_lahir' => $tgl_lahir,
+
             ':alamat' => $alamat,
+
             ':no_telp' => $no_telp,
-            ':hak' => $hak,
+
             ':nip' => $NIP
         ]);
     }
@@ -71,33 +76,47 @@ class Staff
 // ======================
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
-    $NIP = $_POST['NIP'];
-    $nama_user = $_POST['nama_user'];
-    $tgl_lahir = $_POST['tgl_lahir'];
-    $alamat = $_POST['alamat'];
-    $no_telp = $_POST['no_telp'];
-    $hak = $_POST['hak'];
+    $NIP =
+        $_POST['NIP'];
 
-    $staff = new Staff($koneksi);
+    $nama_user =
+        $_POST['nama_user'];
+
+    $tgl_lahir =
+        $_POST['tgl_lahir'];
+
+    $alamat =
+        $_POST['alamat'];
+
+    $no_telp =
+        $_POST['no_telp'];
+
+    $staff =
+        new Staff($koneksi);
 
     if ($staff->updateStaff(
+
         $NIP,
         $nama_user,
         $tgl_lahir,
         $alamat,
-        $no_telp,
-        $hak
+        $no_telp
+
     )) {
 
         header("Location: staff.php");
+
         exit;
 
     } else {
 
         echo "
         <script>
+
             alert('Gagal mengupdate data staff!');
+
             window.location.href='staff.php';
+
         </script>
         ";
     }
@@ -109,11 +128,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // ======================
     if (isset($_GET['NIP'])) {
 
-        $NIP = $_GET['NIP'];
+        $NIP =
+            $_GET['NIP'];
 
-        $staff = new Staff($koneksi);
+        $staff =
+            new Staff($koneksi);
 
-        $staffData = $staff->getStaffByNIP($NIP);
+        $staffData =
+            $staff->getStaffByNIP($NIP);
     }
 }
 ?>
@@ -123,11 +145,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
 
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Edit Data Staff</title>
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+<title>
+    Edit Data Staff
+</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css"
+      rel="stylesheet">
 
 </head>
 
@@ -141,7 +168,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     <?php if (isset($staffData) && $staffData): ?>
 
-    <form action="edit_staff.php" method="POST">
+    <form action="edit_staff.php"
+          method="POST">
 
         <!-- NIP -->
         <div class="mb-3">
@@ -173,7 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         </div>
 
-        <!-- TANGGAL LAHIR -->
+        <!-- TANGGAL -->
         <div class="mb-3">
 
             <label class="form-label">
@@ -203,7 +231,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         </div>
 
-        <!-- NO TELEPON -->
+        <!-- TELP -->
         <div class="mb-3">
 
             <label class="form-label">
@@ -218,32 +246,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         </div>
 
-        <!-- HAK -->
+        <!-- ROLE -->
         <div class="mb-3">
 
             <label class="form-label">
-                Hak
+                Hak Akses
             </label>
 
-            <select class="form-control"
-                    name="hak"
-                    required>
-
-                <option value="admin"
-                    <?= ($staffData['hak'] == 'admin') ? 'selected' : '' ?>>
-
-                    Admin
-
-                </option>
-
-                <option value="karyawan"
-                    <?= ($staffData['hak'] == 'karyawan') ? 'selected' : '' ?>>
-
-                    Karyawan
-
-                </option>
-
-            </select>
+            <input type="text"
+                   class="form-control"
+                   value="<?= htmlspecialchars($staffData['hak']) ?>"
+                   readonly>
 
         </div>
 
