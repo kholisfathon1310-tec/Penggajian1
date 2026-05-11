@@ -6,20 +6,21 @@ require_once 'config.php';
 // ======================
 // KONEKSI DATABASE
 // ======================
-$db = new Database();
-$conn = $db->getConnection();
+$conn = $koneksi;
 
 // ======================
 // AMBIL NIP
 // ======================
-$NIP = isset($_GET['NIP']) ? $_GET['NIP'] : '';
+$NIP = isset($_GET['NIP'])
+    ? $_GET['NIP']
+    : '';
 
 // ======================
 // QUERY DATA
 // ======================
 $stmt = $conn->prepare("
-    SELECT * 
-    FROM admin_penggajian 
+    SELECT *
+    FROM admin_penggajian
     WHERE NIP = :nip
 ");
 
@@ -27,17 +28,31 @@ $stmt->execute([
     ':nip' => $NIP
 ]);
 
-$gaji = $stmt->fetch(PDO::FETCH_ASSOC);
+$gaji =
+    $stmt->fetch(PDO::FETCH_ASSOC);
 
 // ======================
 // VALIDASI DATA
 // ======================
 if (!$gaji) {
 
-    echo "<div class='info-container'>";
-    echo "<p>Data gaji untuk NIP <strong>" . htmlspecialchars($NIP, ENT_QUOTES, 'UTF-8') . "</strong> tidak ditemukan.</p>";
-    echo "<button onclick=\"window.location.href='admin_gaji.php'\">Kembali</button>";
-    echo "</div>";
+    echo "
+    <div class='info-container'>
+
+        <p>
+            Data gaji untuk NIP
+            <strong>" .
+            htmlspecialchars($NIP, ENT_QUOTES, 'UTF-8') .
+            "</strong>
+            tidak ditemukan.
+        </p>
+
+        <button onclick=\"window.location.href='admin_gaji.php'\">
+            Kembali
+        </button>
+
+    </div>
+    ";
 
     exit;
 }
@@ -46,12 +61,18 @@ if (!$gaji) {
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Detail Gaji Karyawan</title>
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>
+    Detail Gaji Karyawan
+</title>
 
 <style>
+
 body {
     font-family: Arial, sans-serif;
     background-color: #f4f4f4;
@@ -88,11 +109,14 @@ table {
     background-color: #fff;
 }
 
-table, th, td {
+table,
+th,
+td {
     border: 1px solid #ddd;
 }
 
-th, td {
+th,
+td {
     padding: 10px;
     text-align: left;
 }
@@ -131,7 +155,7 @@ td {
 @media print {
 
     body {
-        font-family: 'Courier New', Courier, monospace;
+        font-family: "Courier New", Courier, monospace;
         font-size: 12px;
     }
 
@@ -153,7 +177,8 @@ td {
         border: 1px solid #333;
     }
 
-    th, td {
+    th,
+    td {
         padding: 8px;
     }
 
@@ -161,35 +186,53 @@ td {
         background-color: #ddd;
     }
 }
+
 </style>
+
 </head>
 
 <body>
 
 <div class="header">
-    <h2>SLIP GAJI KARYAWAN</h2>
+
+    <h2>
+        SLIP GAJI KARYAWAN
+    </h2>
+
 </div>
 
 <div class="info-container">
 
     <p>
+
         <strong>NIP:</strong>
+
         <?= htmlspecialchars($gaji['NIP'], ENT_QUOTES, 'UTF-8'); ?>
+
     </p>
 
     <p>
+
         <strong>Nama Karyawan:</strong>
-        <?= htmlspecialchars($gaji['nama_karyawan'], ENT_QUOTES, 'UTF-8'); ?>
+
+        <?= htmlspecialchars($gaji['nama_user'], ENT_QUOTES, 'UTF-8'); ?>
+
     </p>
 
     <p>
+
         <strong>Posisi:</strong>
-        <?= htmlspecialchars($gaji['posisi'], ENT_QUOTES, 'UTF-8'); ?>
+
+        <?= htmlspecialchars($gaji['hak'], ENT_QUOTES, 'UTF-8'); ?>
+
     </p>
 
     <p>
+
         <strong>Periode:</strong>
+
         <?= htmlspecialchars($gaji['periode'], ENT_QUOTES, 'UTF-8'); ?>
+
     </p>
 
 </div>
@@ -197,54 +240,71 @@ td {
 <table>
 
     <tr>
+
         <th>Periode</th>
         <th>Tanggal Gaji</th>
         <th>Salary</th>
         <th>Potongan BPJS</th>
         <th>Potongan Absen</th>
         <th>Transportasi</th>
-        <th>Lembur (Jam)</th>
-        <th>Gaji Lembur Per Jam</th>
-        <th>Status</th>
+        <th>Lembur</th>
         <th>Total</th>
+
     </tr>
 
     <tr>
 
-        <td><?= htmlspecialchars($gaji['periode']); ?></td>
-
-        <td><?= htmlspecialchars($gaji['tanggal_gaji']); ?></td>
-
         <td>
-            Rp <?= number_format($gaji['gaji_pokok'] ?: 0, 0, ',', '.'); ?>
+
+            <?= htmlspecialchars($gaji['periode']); ?>
+
         </td>
 
         <td>
-            Rp <?= number_format($gaji['pot_BPJS'] ?: 0, 0, ',', '.'); ?>
+
+            <?= htmlspecialchars($gaji['tanggal_gaji']); ?>
+
         </td>
 
         <td>
-            Rp <?= number_format($gaji['pot_absen'] ?: 0, 0, ',', '.'); ?>
+
+            Rp
+            <?= number_format($gaji['base_salary'] ?: 0, 0, ',', '.'); ?>
+
         </td>
 
         <td>
-            Rp <?= number_format($gaji['transportasi'] ?: 0, 0, ',', '.'); ?>
+
+            Rp
+            <?= number_format($gaji['pot_BPJS'] ?: 0, 0, ',', '.'); ?>
+
         </td>
 
         <td>
-            <?= $gaji['lembur'] ?: 0; ?>
+
+            Rp
+            <?= number_format($gaji['pot_absen'] ?: 0, 0, ',', '.'); ?>
+
         </td>
 
         <td>
-            Rp <?= number_format($gaji['gaji_lembur_per_jam'] ?: 0, 0, ',', '.'); ?>
+
+            Rp
+            <?= number_format($gaji['transportasi'] ?: 0, 0, ',', '.'); ?>
+
         </td>
 
         <td>
-            <?= htmlspecialchars($gaji['status'], ENT_QUOTES, 'UTF-8'); ?>
+
+            <?= htmlspecialchars($gaji['lembur']); ?>
+
         </td>
 
         <td>
-            Rp <?= number_format($gaji['total'] ?: 0, 0, ',', '.'); ?>
+
+            Rp
+            <?= number_format($gaji['salary'] ?: 0, 0, ',', '.'); ?>
+
         </td>
 
     </tr>
@@ -254,11 +314,15 @@ td {
 <div class="button-container">
 
     <button onclick="window.location.href='admin_gaji.php'">
+
         Kembali
+
     </button>
 
     <button onclick="window.print()">
+
         Print
+
     </button>
 
 </div>
