@@ -19,7 +19,7 @@ try {
     $stmt = $koneksi->prepare("
         SELECT 
             DATE_FORMAT(tanggal_gaji, '%Y-%m') AS bulan,
-            SUM(total) AS total_penggajian
+            SUM(salary) AS total_penggajian
         FROM admin_penggajian
         GROUP BY bulan
         ORDER BY bulan ASC
@@ -33,19 +33,25 @@ try {
     // ARRAY DATA
     // ======================
     $bulan = [];
+
     $total_penggajian = [];
 
     foreach ($data as $row) {
 
-        $bulan[] = $row['bulan'];
-        $total_penggajian[] = $row['total_penggajian'];
+        $bulan[] =
+            $row['bulan'];
+
+        $total_penggajian[] =
+            $row['total_penggajian'];
     }
 
 } catch (PDOException $e) {
 
-    die("Terjadi kesalahan database: " . $e->getMessage());
+    die(
+        "Terjadi kesalahan database: "
+        . $e->getMessage()
+    );
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -53,9 +59,13 @@ try {
 <head>
 
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Grafik Penggajian</title>
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>
+    Grafik Penggajian
+</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -109,7 +119,9 @@ try {
 <script>
 
 const ctx =
-    document.getElementById('gajiChart').getContext('2d');
+    document
+    .getElementById('gajiChart')
+    .getContext('2d');
 
 const gajiChart = new Chart(ctx, {
 
@@ -117,17 +129,22 @@ const gajiChart = new Chart(ctx, {
 
     data: {
 
-        labels: <?= json_encode($bulan); ?>,
+        labels:
+            <?= json_encode($bulan); ?>,
 
         datasets: [{
 
-            label: 'Total Penggajian',
+            label:
+                'Total Penggajian',
 
-            data: <?= json_encode($total_penggajian); ?>,
+            data:
+                <?= json_encode($total_penggajian); ?>,
 
-            borderColor: 'rgba(75, 192, 192, 1)',
+            borderColor:
+                'rgba(75, 192, 192, 1)',
 
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            backgroundColor:
+                'rgba(75, 192, 192, 0.2)',
 
             fill: true,
 
@@ -142,6 +159,7 @@ const gajiChart = new Chart(ctx, {
         plugins: {
 
             legend: {
+
                 display: true
             }
         },
