@@ -31,12 +31,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // ======================
-    // KONEKSI DATABASE
-    // ======================
-    $db = new Database();
-    $koneksi = $db->getConnection();
-
-    // ======================
     // LOGIN AUTH
     // ======================
     $auth = new Auth($koneksi, $NIP, $password);
