@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-require_once "config.php";
+require_once 'config.php';
 
 require_once "template/header.php";
 require_once "template/sidebar.php";
@@ -14,7 +14,8 @@ require_once "template/footer.php";
 if (!isset($_SESSION['NIP'])) {
 
     header("Location: form_login.php");
-    exit();
+
+    exit;
 }
 
 // ======================
@@ -23,39 +24,48 @@ if (!isset($_SESSION['NIP'])) {
 $nipLogin = $_SESSION['NIP'];
 
 // ======================
-// QUERY DATA ABSENSI
+// ARRAY GRAFIK
+// ======================
+$labels = [];
+
+$salaryData = [];
+
+// ======================
+// AMBIL DATA GAJI
 // ======================
 try {
 
     $stmt = $koneksi->prepare("
-        SELECT 
-            DATE(jam_masuk) AS tanggal,
-            COUNT(*) AS jumlah_login
-        FROM admin_absen
+        SELECT
+            periode,
+            salary
+        FROM admin_penggajian
         WHERE NIP = :nip
-        GROUP BY DATE(jam_masuk)
-        ORDER BY tanggal DESC
+        ORDER BY tanggal_gaji ASC
     ");
 
     $stmt->execute([
         ':nip' => $nipLogin
     ]);
 
-    // ======================
-    // ARRAY DATA
-    // ======================
-    $labels = [];
-    $data = [];
+    $gajiData =
+        $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    foreach ($gajiData as $row) {
 
-        $labels[] = $row['tanggal'];
-        $data[] = $row['jumlah_login'];
+        $labels[] =
+            $row['periode'];
+
+        $salaryData[] =
+            $row['salary'];
     }
 
 } catch (PDOException $e) {
 
-    die("Terjadi kesalahan database: " . $e->getMessage());
+    die(
+        "Terjadi kesalahan database: "
+        . $e->getMessage()
+    );
 }
 ?>
 
@@ -64,12 +74,16 @@ try {
 <head>
 
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Grafik Absen Karyawan</title>
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-      rel="stylesheet">
+<title>
+    Dashboard Karyawan
+</title>
+
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -87,8 +101,8 @@ try {
 .card-header {
     background-color: #343a40;
     color: white;
-    text-align: center;
     font-weight: bold;
+    text-align: center;
 }
 
 </style>
@@ -99,21 +113,21 @@ try {
 
 <div class="container">
 
+    <!-- ======================
+         GRAFIK GAJI
+    ======================= -->
     <div class="card">
 
         <div class="card-header">
 
-            <h4 class="card-title">
-                Grafik Absen Karyawan
-            </h4>
+            Grafik Gaji Karyawan
 
         </div>
 
         <div class="card-body">
 
-            <canvas id="attendanceChart"
-                    width="400"
-                    height="200">
+            <canvas id="salaryChart"
+                    height="100">
             </canvas>
 
         </div>
@@ -124,28 +138,42 @@ try {
 
 <script>
 
+// ======================
+// GRAFIK GAJI
+// ======================
 const ctx =
-    document.getElementById('attendanceChart').getContext('2d');
+    document
+    .getElementById('salaryChart')
+    .getContext('2d');
 
-const attendanceChart = new Chart(ctx, {
+new Chart(ctx, {
 
-    type: 'bar',
+    type: 'line',
 
     data: {
 
-        labels: <?= json_encode($labels); ?>,
+        labels:
+            <?= json_encode($labels); ?>,
 
         datasets: [{
 
-            label: 'Jumlah Login Karyawan',
+            label:
+                'Total Gaji',
 
-            data: <?= json_encode($data); ?>,
+            data:
+                <?= json_encode($salaryData); ?>,
 
-            backgroundColor: 'rgba(111, 23, 60, 0.2)',
+            borderColor:
+                'rgba(54, 162, 235, 1)',
 
-            borderColor: 'rgb(41, 128, 0)',
+            backgroundColor:
+                'rgba(54, 162, 235, 0.2)',
 
-            borderWidth: 1
+            borderWidth: 2,
+
+            fill: true,
+
+            tension: 0.3
         }]
     },
 
@@ -155,24 +183,7 @@ const attendanceChart = new Chart(ctx, {
 
         scales: {
 
-            x: {
-
-                title: {
-
-                    display: true,
-
-                    text: 'Tanggal'
-                }
-            },
-
             y: {
-
-                title: {
-
-                    display: true,
-
-                    text: 'Jumlah Login'
-                },
 
                 beginAtZero: true
             }
