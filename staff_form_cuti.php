@@ -1,168 +1,393 @@
 <?php
-session_start(); // Memastikan sesi dimulai
+session_start();
+
 require_once "config.php";
-require_once "template/header.php";  // Include header (with navbar)
+
+require_once "template/header.php";
 require_once "template/sidebar.php";
-require_once "template/navbar.php";  // Navbar with additional styling
+require_once "template/navbar.php";
 
-$nip = isset($_SESSION['NIP']) ? $_SESSION['NIP'] : '';
+// ======================
+// AMBIL NIP LOGIN
+// ======================
+$nip =
+    isset($_SESSION['NIP'])
+    ? $_SESSION['NIP']
+    : '';
 
-// Fetching leave requests from the database
-$sql = "SELECT * FROM admin_pengajuan_cuti";
-$result = mysqli_query($koneksi, $sql);
+// ======================
+// QUERY DATA CUTI
+// ======================
+try {
 
-class MainContent {
-    // Render the table of leave requests
-    public static function renderTable($result) {
-        echo '<div class="content mt-5">'; // Increased top margin for better spacing
-        echo '    <h4 class="mb-4">Data Permohonan Cuti</h4>'; // Added margin bottom for title
-        echo '    <div class="d-flex justify-content-between align-items-center mb-4">'; // Adjusted margin
-        echo '        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#tambahDataModal">'; 
-        echo '            <i class="bi bi-person-plus"></i> Tambah';
-        echo '        </button>';
-        echo '    </div>';
-        echo '    <table class="table table-striped table-bordered table-hover text-center">'; // Added table-hover for hover effect
-        echo '        <thead class="table-light">'; // Light background for the header
-        echo '            <tr>';
-        echo '                <th>Id Cuti</th>';
-        echo '                <th>NIP</th>';
-        echo '                <th>Nama</th>';
-        echo '                <th>Tanggal Pengajuan</th>';
-        echo '                <th>Tanggal Mulai</th>';
-        echo '                <th>Tanggal Selesai</th>';
-        echo '                <th>Alesan Cuti</th>';
-        echo '                <th>Status</th>';
-        echo '            </tr>';
-        echo '        </thead>';
-        echo '        <tbody>';
-        
-        if ($result->num_rows > 0) {
-            while ($row = $result->fetch_assoc()) {
-                echo '<tr>';
-                echo '    <td>' . $row['id_cuti'] . '</td>';
-                echo '    <td>' . $row['NIP'] . '</td>';
-                echo '    <td>' . $row['nama'] . '</td>';
-                echo '    <td>' . $row['tanggal_pengajuan'] . '</td>';
-                echo '    <td>' . $row['tanggal_awal'] . '</td>';
-                echo '    <td>' . $row['tanggal_akhir'] . '</td>';
-                echo '    <td>' . $row['jenis_cuti'] . '</td>';
-                
-                // Set button color based on status
-                $status = $row['status'];
-                $buttonClass = ($status === 'Setujui') ? 'btn-success' : (($status === 'Ditolak') ? 'btn-danger' : 'btn-warning');
-                echo '    <td><button class="btn ' . $buttonClass . ' btn-sm">' . ucfirst($status) . '</button></td>';
-                echo '</tr>';
-            }
-        } else {
-            echo '<tr><td colspan="8" class="text-center">Tidak ada permohonan cuti</td></tr>';
-        }
-        echo '        </tbody>';
-        echo '    </table>';
-        echo '</div>';
-    }
+    $stmt = $koneksi->prepare("
+        SELECT *
+        FROM admin_pengajuan_cuti
+        ORDER BY id_cuti DESC
+    ");
 
-    // Render modal to add leave request
-    public static function renderAddLeaveRequestModal($nip) {
-        echo '<div class="modal fade" id="tambahDataModal" tabindex="-1" aria-labelledby="tambahDataLabel" aria-hidden="true">';
-        echo '    <div class="modal-dialog">';
-        echo '        <div class="modal-content">';
-        echo '            <div class="modal-header">';
-        echo '                <h5 class="modal-title" id="tambahDataLabel">Tambah Permohonan Cuti</h5>';
-        echo '                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>';
-        echo '            </div>';
-        echo '            <form action="staff_permohonan_cuti.php" method="POST">';
-        echo '                <div class="modal-body">';
-        echo '                    <div class="mb-3">';
-        echo '                        <label for="NIP" class="form-label">NIP</label>';
-        echo '                        <input type="text" class="form-control" name="NIP" value="' . htmlspecialchars($nip) . '" readonly>';
-        echo '                    </div>';
-        echo '                    <div class="mb-3">';
-        echo '                        <label for="nama" class="form-label">Nama</label>';
-        echo '                        <input type="text" class="form-control" name="nama" required>';
-        echo '                    </div>';
-        echo '                    <div class="mb-3">';
-        echo '                        <label for="tanggal_mulai" class="form-label">Tanggal Mulai Cuti</label>';
-        echo '                        <input type="date" class="form-control" name="tanggal_mulai" required>';
-        echo '                    </div>';
-        echo '                    <div class="mb-3">';
-        echo '                        <label for="tanggal_selesai" class="form-label">Tanggal Selesai Cuti</label>';
-        echo '                        <input type="date" class="form-control" name="tanggal_selesai" required>';
-        echo '                    </div>';
-        echo '                    <div class="mb-3">';
-        echo '                        <label for="jenis_cuti" class="form-label">Alesan Cuti</label>';
-        echo '                        <input type="text" class="form-control" name="jenis_cuti" required>';
-        echo '                    </div>';
-        echo '                    <div class="mb-3">';
-        echo '                        <label for="status" class="form-label">Status</label>';
-        echo '                        <select class="form-select" name="status" required>';
-        echo '                            <option value="pending">Pending</option>';
-        echo '                        </select>';
-        echo '                    </div>';
-        echo '                </div>';
-        echo '                <div class="modal-footer">';
-        echo '                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>';
-        echo '                    <button type="submit" class="btn btn-primary">Tambah</button>';
-        echo '                </div>';
-        echo '            </form>';
-        echo '        </div>';
-        echo '    </div>';
-        echo '</div>';
-    }
+    $stmt->execute();
+
+    $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+} catch (PDOException $e) {
+
+    die("Terjadi kesalahan database: " . $e->getMessage());
 }
 
+// ======================
+// CLASS MAIN CONTENT
+// ======================
+class MainContent
+{
+    // ======================
+    // TABLE CUTI
+    // ======================
+    public static function renderTable($result)
+    {
+        echo '
+        <div class="content mt-5">
+
+            <h4 class="mb-4">
+                Data Permohonan Cuti
+            </h4>
+
+            <div class="d-flex justify-content-between align-items-center mb-4">
+
+                <button class="btn btn-primary btn-sm"
+                        data-bs-toggle="modal"
+                        data-bs-target="#tambahDataModal">
+
+                    <i class="bi bi-person-plus"></i>
+
+                    Tambah
+
+                </button>
+
+            </div>
+
+            <table class="table table-striped table-bordered table-hover text-center">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th>Id Cuti</th>
+                        <th>NIP</th>
+                        <th>Nama</th>
+                        <th>Tanggal Pengajuan</th>
+                        <th>Tanggal Mulai</th>
+                        <th>Tanggal Selesai</th>
+                        <th>Alesan Cuti</th>
+                        <th>Status</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+        ';
+
+        // ======================
+        // LOOP DATA
+        // ======================
+        if ($result) {
+
+            foreach ($result as $row) {
+
+                $status = $row['status'];
+
+                $buttonClass =
+                    ($status === 'Setujui')
+                    ? 'btn-success'
+                    : (
+                        ($status === 'Ditolak')
+                        ? 'btn-danger'
+                        : 'btn-warning'
+                    );
+
+                echo '
+                <tr>
+
+                    <td>' . htmlspecialchars($row['id_cuti']) . '</td>
+
+                    <td>' . htmlspecialchars($row['NIP']) . '</td>
+
+                    <td>' . htmlspecialchars($row['nama']) . '</td>
+
+                    <td>' . htmlspecialchars($row['tanggal_pengajuan']) . '</td>
+
+                    <td>' . htmlspecialchars($row['tanggal_awal']) . '</td>
+
+                    <td>' . htmlspecialchars($row['tanggal_akhir']) . '</td>
+
+                    <td>' . htmlspecialchars($row['jenis_cuti']) . '</td>
+
+                    <td>
+
+                        <button class="btn ' . $buttonClass . ' btn-sm">
+
+                            ' . ucfirst($status) . '
+
+                        </button>
+
+                    </td>
+
+                </tr>
+                ';
+            }
+
+        } else {
+
+            echo '
+            <tr>
+
+                <td colspan="8"
+                    class="text-center">
+
+                    Tidak ada permohonan cuti
+
+                </td>
+
+            </tr>
+            ';
+        }
+
+        echo '
+                </tbody>
+
+            </table>
+
+        </div>
+        ';
+    }
+
+    // ======================
+    // MODAL TAMBAH CUTI
+    // ======================
+    public static function renderAddLeaveRequestModal($nip)
+    {
+        echo '
+        <div class="modal fade"
+             id="tambahDataModal"
+             tabindex="-1"
+             aria-hidden="true">
+
+            <div class="modal-dialog">
+
+                <div class="modal-content">
+
+                    <div class="modal-header">
+
+                        <h5 class="modal-title">
+
+                            Tambah Permohonan Cuti
+
+                        </h5>
+
+                        <button type="button"
+                                class="btn-close"
+                                data-bs-dismiss="modal">
+                        </button>
+
+                    </div>
+
+                    <form action="staff_permohonan_cuti.php"
+                          method="POST">
+
+                        <div class="modal-body">
+
+                            <!-- NIP -->
+                            <div class="mb-3">
+
+                                <label class="form-label">
+                                    NIP
+                                </label>
+
+                                <input type="text"
+                                       class="form-control"
+                                       name="NIP"
+                                       value="' . htmlspecialchars($nip) . '"
+                                       readonly>
+
+                            </div>
+
+                            <!-- NAMA -->
+                            <div class="mb-3">
+
+                                <label class="form-label">
+                                    Nama
+                                </label>
+
+                                <input type="text"
+                                       class="form-control"
+                                       name="nama"
+                                       required>
+
+                            </div>
+
+                            <!-- TANGGAL MULAI -->
+                            <div class="mb-3">
+
+                                <label class="form-label">
+                                    Tanggal Mulai Cuti
+                                </label>
+
+                                <input type="date"
+                                       class="form-control"
+                                       name="tanggal_mulai"
+                                       required>
+
+                            </div>
+
+                            <!-- TANGGAL SELESAI -->
+                            <div class="mb-3">
+
+                                <label class="form-label">
+                                    Tanggal Selesai Cuti
+                                </label>
+
+                                <input type="date"
+                                       class="form-control"
+                                       name="tanggal_selesai"
+                                       required>
+
+                            </div>
+
+                            <!-- ALASAN -->
+                            <div class="mb-3">
+
+                                <label class="form-label">
+                                    Alasan Cuti
+                                </label>
+
+                                <input type="text"
+                                       class="form-control"
+                                       name="jenis_cuti"
+                                       required>
+
+                            </div>
+
+                            <!-- STATUS -->
+                            <div class="mb-3">
+
+                                <label class="form-label">
+                                    Status
+                                </label>
+
+                                <select class="form-select"
+                                        name="status"
+                                        required>
+
+                                    <option value="pending">
+
+                                        Pending
+
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+                        </div>
+
+                        <div class="modal-footer">
+
+                            <button type="button"
+                                    class="btn btn-secondary"
+                                    data-bs-dismiss="modal">
+
+                                Close
+
+                            </button>
+
+                            <button type="submit"
+                                    class="btn btn-primary">
+
+                                Tambah
+
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+        ';
+    }
+}
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Permohonan Cuti</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.5/font/bootstrap-icons.min.css" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            margin-top: 0;
-            background-color: #f8f9fa;
-        }
-        .content {
-            padding: 10px;
-        }
 
-        .table th, .table td {
-            vertical-align: middle;
-        }
+<meta charset="UTF-8">
 
-        .btn-primary {
-            border-radius: 25px;
-            font-size: 14px;
-        }
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
 
-        .search-box {
-            max-width: 250px;
-        }
+<title>Permohonan Cuti</title>
 
-        .modal-content {
-            border-radius: 10px;
-        }
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css"
+      rel="stylesheet">
 
-        /* Clean up navbar styles */
-        .navbar {
-            padding: 3px 20px;
-     
-        }
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.5/font/bootstrap-icons.min.css"
+      rel="stylesheet">
 
-    </style>
+<style>
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f8f9fa;
+}
+
+.content {
+    padding: 10px;
+}
+
+.table th,
+.table td {
+    vertical-align: middle;
+}
+
+.btn-primary {
+    border-radius: 25px;
+    font-size: 14px;
+}
+
+.modal-content {
+    border-radius: 10px;
+}
+
+.navbar {
+    padding: 3px 20px;
+}
+
+</style>
+
 </head>
+
 <body>
-    <!-- Navbar is already included in the header.php -->
-    <div class="content-wrapper" style="min-height: 100vh; background-color: #e9ecef;">
-        <div class="container d-flex justify-content-center align-items-center" style="height: auto;">
-            <?php MainContent::renderTable($result); ?>
-            <?php MainContent::renderAddLeaveRequestModal($nip); ?>
-        </div>
+
+<div class="content-wrapper"
+     style="min-height:100vh;background-color:#e9ecef;">
+
+    <div class="container d-flex justify-content-center align-items-center">
+
+        <?php MainContent::renderTable($result); ?>
+
+        <?php MainContent::renderAddLeaveRequestModal($nip); ?>
+
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 </html>
