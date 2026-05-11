@@ -1,187 +1,363 @@
 <?php
-// Pastikan session dimulai pertama kali sebelum ada output
 session_start();
 
-// Konfigurasi Database
-class Database {
-    private $host = "localhost";
-    private $username = "root";
-    private $password = "";
-    private $dbName = "penggajian";
-    protected $connection;
+require_once "config.php";
 
-    public function __construct() {
-        $this->connection = new mysqli($this->host, $this->username, $this->password, $this->dbName);
-        if ($this->connection->connect_error) {
-            die("Koneksi gagal: " . $this->connection->connect_error);
-        }
-    }
-}
+// ======================
+// CLASS USER
+// ======================
+class User
+{
+    private $koneksi;
 
-// Class User untuk operasi data user
-class User extends Database {
     private $nip;
     private $nama;
     private $tglLahir;
     private $noTelp;
     private $alamat;
 
-    // Enkapsulasi: Setter dan Getter untuk properti
-    public function setNIP($nip) {
+    // ======================
+    // CONSTRUCTOR
+    // ======================
+    public function __construct($koneksi)
+    {
+        $this->koneksi = $koneksi;
+    }
+
+    // ======================
+    // SETTER
+    // ======================
+    public function setNIP($nip)
+    {
         $this->nip = $nip;
     }
 
-    public function getNIP() {
-        return $this->nip;
-    }
-
-    public function setNama($nama) {
+    public function setNama($nama)
+    {
         $this->nama = $nama;
     }
 
-    public function getNama() {
-        return $this->nama;
-    }
-
-    public function setTglLahir($tglLahir) {
+    public function setTglLahir($tglLahir)
+    {
         $this->tglLahir = $tglLahir;
     }
 
-    public function getTglLahir() {
-        return $this->tglLahir;
-    }
-
-    public function setNoTelp($noTelp) {
+    public function setNoTelp($noTelp)
+    {
         $this->noTelp = $noTelp;
     }
 
-    public function getNoTelp() {
-        return $this->noTelp;
-    }
-
-    public function setAlamat($alamat) {
+    public function setAlamat($alamat)
+    {
         $this->alamat = $alamat;
     }
 
-    public function getAlamat() {
-        return $this->alamat;
+    // ======================
+    // GET DATA USER
+    // ======================
+    public function getUserData($nip)
+    {
+        $stmt = $this->koneksi->prepare("
+            SELECT *
+            FROM user
+            WHERE NIP = :nip
+        ");
+
+        $stmt->execute([
+            ':nip' => $nip
+        ]);
+
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    // Ambil data user berdasarkan NIP
-    public function getUserData($nip) {
-        $query = "SELECT * FROM user WHERE NIP = ?";
-        $stmt = $this->connection->prepare($query);
-        $stmt->bind_param("s", $nip);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        return $result->fetch_assoc();
-    }
+    // ======================
+    // UPDATE PROFILE
+    // ======================
+    public function updateProfile()
+    {
+        $stmt = $this->koneksi->prepare("
+            UPDATE user
+            SET
+                nama_user = :nama_user,
+                tgl_lahir = :tgl_lahir,
+                no_telp = :no_telp,
+                alamat = :alamat
+            WHERE NIP = :nip
+        ");
 
-    // Update data user
-    public function updateProfile() {
-        $query = "UPDATE user SET nama_user = ?, tgl_lahir = ?, no_telp = ?, alamat = ? WHERE NIP = ?";
-        $stmt = $this->connection->prepare($query);
-        $stmt->bind_param("sssss", $this->nama, $this->tglLahir, $this->noTelp, $this->alamat, $this->nip);
-        return $stmt->execute();
+        return $stmt->execute([
+
+            ':nama_user' => $this->nama,
+            ':tgl_lahir' => $this->tglLahir,
+            ':no_telp' => $this->noTelp,
+            ':alamat' => $this->alamat,
+            ':nip' => $this->nip
+        ]);
     }
 }
 
-// Pewarisan: Class Admin memperluas User
-class Admin extends User {
-    public function deleteUser($nip) {
-        $query = "DELETE FROM user WHERE NIP = ?";
-        $stmt = $this->connection->prepare($query);
-        $stmt->bind_param("s", $nip);
-        return $stmt->execute();
-    }
-}
-
-// Polimorfisme: Class Validator untuk validasi input
-class Validator {
-    public static function sanitizeInput($data) {
-        return htmlspecialchars(stripslashes(trim($data)));
+// ======================
+// CLASS VALIDATOR
+// ======================
+class Validator
+{
+    public static function sanitizeInput($data)
+    {
+        return htmlspecialchars(
+            stripslashes(trim($data))
+        );
     }
 
-    public static function validateDate($date) {
+    public static function validateDate($date)
+    {
         $format = 'Y-m-d';
-        $d = DateTime::createFromFormat($format, $date);
+
+        $d = DateTime::createFromFormat(
+            $format,
+            $date
+        );
+
         return $d && $d->format($format) === $date;
     }
 }
 
-// Cek apakah user sudah login
+// ======================
+// CEK LOGIN
+// ======================
 if (!isset($_SESSION['NIP'])) {
+
     header("Location: form_login.php");
+
     exit();
 }
 
-// Ambil NIP dari session
+// ======================
+// AMBIL NIP SESSION
+// ======================
 $nip = $_SESSION['NIP'];
 
-// Buat objek User
-$user = new User();
+// ======================
+// OBJECT USER
+// ======================
+$user = new User($koneksi);
+
+// ======================
+// AMBIL DATA USER
+// ======================
 $userData = $user->getUserData($nip);
 
+// ======================
+// PROSES UPDATE
+// ======================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Proses update profil
-    $user->setNIP($nip);
-    $user->setNama(Validator::sanitizeInput($_POST['nama_user']));
-    $user->setTglLahir(Validator::sanitizeInput($_POST['tgl_lahir']));
-    $user->setNoTelp(Validator::sanitizeInput($_POST['no_telp']));
-    $user->setAlamat(Validator::sanitizeInput($_POST['alamat']));
 
+    $user->setNIP($nip);
+
+    $user->setNama(
+        Validator::sanitizeInput(
+            $_POST['nama_user']
+        )
+    );
+
+    $user->setTglLahir(
+        Validator::sanitizeInput(
+            $_POST['tgl_lahir']
+        )
+    );
+
+    $user->setNoTelp(
+        Validator::sanitizeInput(
+            $_POST['no_telp']
+        )
+    );
+
+    $user->setAlamat(
+        Validator::sanitizeInput(
+            $_POST['alamat']
+        )
+    );
+
+    // ======================
+    // UPDATE DATA
+    // ======================
     if ($user->updateProfile()) {
-        echo "<script>alert('Profil berhasil diperbarui!'); window.location.href='profile.php';</script>";
+
+        $_SESSION['message'] =
+            "Profil berhasil diperbarui!";
+
+        $_SESSION['message_type'] =
+            "success";
+
+        header("Location: profile.php");
+
+        exit();
+
     } else {
-        echo "<script>alert('Gagal memperbarui profil!');</script>";
+
+        $_SESSION['message'] =
+            "Gagal memperbarui profil!";
+
+        $_SESSION['message_type'] =
+            "danger";
     }
 }
 ?>
 
-<!-- Tampilan Halaman -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detail Profil</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css">
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>Detail Profil</title>
+
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css">
+
+<style>
+
+body {
+    background-color: #f8f9fa;
+}
+
+.card {
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    font-weight: bold;
+}
+
+</style>
+
 </head>
+
 <body>
+
 <div class="container mt-5">
+
     <div class="card">
-        <div class="card-header bg-dark text-white">Detail Profil</div>
-        <div class="card-body">
-            <form method="POST" action="">
-                <div class="mb-3">
-                    <label for="NIP" class="form-label">NIP</label>
-                    <input type="text" id="NIP" name="NIP" class="form-control" 
-                           value="<?php echo htmlspecialchars($userData['NIP']); ?>" readonly>
-                </div>
-                <div class="mb-3">
-                    <label for="nama_user" class="form-label">Nama</label>
-                    <input type="text" id="nama_user" name="nama_user" class="form-control" 
-                           value="<?php echo htmlspecialchars($userData['nama_user']); ?>" required>
-                </div>
-                <div class="mb-3">
-                    <label for="tgl_lahir" class="form-label">Tanggal Lahir</label>
-                    <input type="date" id="tgl_lahir" name="tgl_lahir" class="form-control" 
-                           value="<?php echo htmlspecialchars($userData['tgl_lahir']); ?>" required>
-                </div>
-                <div class="mb-3">
-                    <label for="no_telp" class="form-label">No Telepon</label>
-                    <input type="text" id="no_telp" name="no_telp" class="form-control" 
-                           value="<?php echo htmlspecialchars($userData['no_telp']); ?>" required>
-                </div>
-                <div class="mb-3">
-                    <label for="alamat" class="form-label">Alamat</label>
-                    <input type="text" id="alamat" name="alamat" class="form-control" 
-                           value="<?php echo htmlspecialchars($userData['alamat']); ?>" required>
-                </div>
-                <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
-            </form>
+
+        <div class="card-header bg-dark text-white">
+
+            Detail Profil
+
         </div>
+
+        <div class="card-body">
+
+            <!-- ALERT -->
+            <?php if (isset($_SESSION['message'])): ?>
+
+                <div class="alert alert-<?= $_SESSION['message_type']; ?>">
+
+                    <?= $_SESSION['message']; ?>
+
+                </div>
+
+                <?php
+                unset($_SESSION['message']);
+                unset($_SESSION['message_type']);
+                ?>
+
+            <?php endif; ?>
+
+            <!-- FORM -->
+            <form method="POST" action="">
+
+                <!-- NIP -->
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        NIP
+                    </label>
+
+                    <input type="text"
+                           class="form-control"
+                           value="<?= htmlspecialchars($userData['NIP']); ?>"
+                           readonly>
+
+                </div>
+
+                <!-- NAMA -->
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Nama
+                    </label>
+
+                    <input type="text"
+                           name="nama_user"
+                           class="form-control"
+                           value="<?= htmlspecialchars($userData['nama_user']); ?>"
+                           required>
+
+                </div>
+
+                <!-- TGL -->
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Tanggal Lahir
+                    </label>
+
+                    <input type="date"
+                           name="tgl_lahir"
+                           class="form-control"
+                           value="<?= htmlspecialchars($userData['tgl_lahir']); ?>"
+                           required>
+
+                </div>
+
+                <!-- TELEPON -->
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        No Telepon
+                    </label>
+
+                    <input type="text"
+                           name="no_telp"
+                           class="form-control"
+                           value="<?= htmlspecialchars($userData['no_telp']); ?>"
+                           required>
+
+                </div>
+
+                <!-- ALAMAT -->
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Alamat
+                    </label>
+
+                    <input type="text"
+                           name="alamat"
+                           class="form-control"
+                           value="<?= htmlspecialchars($userData['alamat']); ?>"
+                           required>
+
+                </div>
+
+                <!-- BUTTON -->
+                <button type="submit"
+                        class="btn btn-primary">
+
+                    Simpan Perubahan
+
+                </button>
+
+            </form>
+
+        </div>
+
     </div>
+
 </div>
+
 </body>
 </html>
