@@ -1,4 +1,6 @@
 <?php
+ob_start();
+
 session_start();
 
 require_once 'config.php';
@@ -13,200 +15,29 @@ require_once "template_admin/navbar.php";
 $conn = $koneksi;
 
 // ======================
-// SIMPAN DATA
+// VALIDASI ID CUTI
 // ======================
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if (isset($_GET['id_cuti'])) {
 
-    $NIP = $_POST['NIP'];
-
-    $nama_user = $_POST['nama_user'];
-
-    $hak = $_POST['hak'];
-
-    $periode = $_POST['periode'];
-
-    $tanggal_gaji = $_POST['tanggal_gaji'];
-
-    $base_salary = $_POST['base_salary'];
-
-    $pot_BPJS = $_POST['pot_BPJS'];
-
-    $transportasi = $_POST['transportasi'];
-
-    $pot_absen = $_POST['pot_absen'];
-
-    $lembur = $_POST['lembur'];
+    $id_cuti = $_GET['id_cuti'];
 
     // ======================
-    // HITUNG LEMBUR
+    // AMBIL DATA CUTI
     // ======================
-    $gajiLembur =
-        ($lembur === 'Iya')
-        ? 50000
-        : 0;
-
-    // ======================
-    // HITUNG TOTAL
-    // ======================
-    $salary =
-        $base_salary
-        - $pot_BPJS
-        - $pot_absen
-        + $transportasi
-        + $gajiLembur;
-
-    // ======================
-    // INSERT / UPDATE
-    // ======================
-    $cek = $conn->prepare("
-        SELECT COUNT(*)
-        FROM admin_penggajian
-        WHERE NIP = :nip
-    ");
-
-    $cek->execute([
-        ':nip' => $NIP
-    ]);
-
-    $exists = $cek->fetchColumn();
-
-    if ($exists > 0) {
-
-        $stmt = $conn->prepare("
-            UPDATE admin_penggajian
-            SET
-                nama_user = :nama_user,
-                hak = :hak,
-                periode = :periode,
-                tanggal_gaji = :tanggal_gaji,
-                base_salary = :base_salary,
-                pot_BPJS = :pot_BPJS,
-                transportasi = :transportasi,
-                pot_absen = :pot_absen,
-                lembur = :lembur,
-                salary = :salary
-            WHERE NIP = :nip
-        ");
-
-    } else {
-
-        $stmt = $conn->prepare("
-            INSERT INTO admin_penggajian (
-                NIP,
-                nama_user,
-                hak,
-                periode,
-                tanggal_gaji,
-                base_salary,
-                pot_BPJS,
-                transportasi,
-                pot_absen,
-                lembur,
-                salary
-            )
-            VALUES (
-                :nip,
-                :nama_user,
-                :hak,
-                :periode,
-                :tanggal_gaji,
-                :base_salary,
-                :pot_BPJS,
-                :transportasi,
-                :pot_absen,
-                :lembur,
-                :salary
-            )
-        ");
-    }
-
-    $result = $stmt->execute([
-
-        ':nip' => $NIP,
-
-        ':nama_user' => $nama_user,
-
-        ':hak' => $hak,
-
-        ':periode' => $periode,
-
-        ':tanggal_gaji' => $tanggal_gaji,
-
-        ':base_salary' => $base_salary,
-
-        ':pot_BPJS' => $pot_BPJS,
-
-        ':transportasi' => $transportasi,
-
-        ':pot_absen' => $pot_absen,
-
-        ':lembur' => $lembur,
-
-        ':salary' => $salary
-    ]);
-
-    if ($result) {
-
-        header("Location: admin_gaji.php?success=1");
-
-        exit;
-
-    } else {
-
-        $error = "Gagal menyimpan data.";
-    }
-}
-
-// ======================
-// AMBIL DATA USER
-// ======================
-$name = '';
-
-$position = '';
-
-if (isset($_GET['NIP'])) {
-
-    $NIP = $_GET['NIP'];
-
     $stmt = $conn->prepare("
-        SELECT
-            nama_user,
-            hak
-        FROM user
-        WHERE NIP = :nip
+        SELECT *
+        FROM admin_pengajuan_cuti
+        WHERE id_cuti = :id
     ");
 
     $stmt->execute([
-        ':nip' => $NIP
+        ':id' => $id_cuti
     ]);
 
-    $employee =
+    $data =
         $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($employee) {
-
-        $name =
-            $employee['nama_user'];
-
-        $position =
-            $employee['hak'];
-    }
-}
-
-// ======================
-// AMBIL SEMUA NIP
-// ======================
-$stmt = $conn->prepare("
-    SELECT
-        NIP
-    FROM user
-");
-
-$stmt->execute();
-
-$nips =
-    $stmt->fetchAll(PDO::FETCH_ASSOC);
-
+    if ($data) {
 ?>
 
 <!DOCTYPE html>
@@ -219,371 +50,276 @@ $nips =
       content="width=device-width, initial-scale=1.0">
 
 <title>
-    Input Gaji Karyawan
+    Detail Permohonan Cuti
 </title>
 
 <link rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 
+<style>
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f8f9fa;
+}
+
+.content {
+    padding: 20px;
+    margin-top: 90px;
+}
+
+.table th {
+    background-color: #343a40;
+    color: white;
+}
+
+.btn-success {
+    background-color: green;
+}
+
+.btn-danger {
+    background-color: red;
+}
+
+.alert {
+    margin-top: 20px;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.fw-bold {
+    font-weight: bold;
+}
+
+</style>
+
 </head>
 
 <body>
 
-<div class="container mt-5">
+<div class="content p-4">
 
-    <h2 class="text-center">
+    <h2 class="text-center fw-bold">
 
-        Input Gaji Karyawan
+        Detail Permohonan Cuti Karyawan
 
     </h2>
 
-    <?php if (isset($error)): ?>
+    <!-- NOTIF -->
+    <?php if (isset($_SESSION['notif'])): ?>
 
-        <div class="alert alert-danger">
+        <div class="alert alert-success alert-dismissible fade show">
 
-            <?= htmlspecialchars($error) ?>
+            <?= htmlspecialchars($_SESSION['notif']) ?>
 
-        </div>
-
-    <?php endif; ?>
-
-    <form action="admin_input_gaji.php"
-          method="POST">
-
-        <!-- NIP -->
-        <div class="mb-3">
-
-            <label class="form-label">
-
-                NIP
-
-            </label>
-
-            <select class="form-control"
-                    id="NIP"
-                    name="NIP"
-                    required>
-
-                <option value="">
-                    Pilih NIP
-                </option>
-
-                <?php foreach ($nips as $nip): ?>
-
-                    <option value="<?= $nip['NIP']; ?>">
-
-                        <?= $nip['NIP']; ?>
-
-                    </option>
-
-                <?php endforeach; ?>
-
-            </select>
-
-        </div>
-
-        <!-- NAMA -->
-        <div class="mb-3">
-
-            <label class="form-label">
-
-                Nama Karyawan
-
-            </label>
-
-            <input type="text"
-                   class="form-control"
-                   id="nama_user"
-                   name="nama_user"
-                   value="<?= htmlspecialchars($name) ?>"
-                   readonly>
-
-        </div>
-
-        <!-- POSISI -->
-        <div class="mb-3">
-
-            <label class="form-label">
-
-                Posisi
-
-            </label>
-
-            <input type="text"
-                   class="form-control"
-                   id="hak"
-                   name="hak"
-                   value="<?= htmlspecialchars($position) ?>"
-                   readonly>
-
-        </div>
-
-        <!-- PERIODE -->
-        <div class="mb-3">
-
-            <label class="form-label">
-
-                Periode
-
-            </label>
-
-            <select class="form-control"
-                    id="periode"
-                    name="periode"
-                    required>
-
-                <option value="">
-                    Pilih Periode
-                </option>
-
-                <option value="2025-01-01 to 2025-03-31">
-                    Januari - Maret 2025
-                </option>
-
-                <option value="2025-04-01 to 2025-06-30">
-                    April - Juni 2025
-                </option>
-
-                <option value="2025-07-01 to 2025-09-30">
-                    Juli - September 2025
-                </option>
-
-                <option value="2025-10-01 to 2025-12-31">
-                    Oktober - Desember 2025
-                </option>
-
-            </select>
-
-        </div>
-
-        <!-- TANGGAL -->
-        <div class="mb-3">
-
-            <label class="form-label">
-
-                Tanggal Gaji
-
-            </label>
-
-            <input type="date"
-                   class="form-control"
-                   id="tanggal_gaji"
-                   name="tanggal_gaji"
-                   required>
-
-        </div>
-
-        <!-- GAJI POKOK -->
-        <div class="mb-3">
-
-            <label class="form-label">
-
-                Gaji Pokok
-
-            </label>
-
-            <input type="number"
-                   class="form-control"
-                   id="base_salary"
-                   name="base_salary"
-                   required>
-
-        </div>
-
-        <!-- BPJS -->
-        <div class="mb-3">
-
-            <label class="form-label">
-
-                Potongan BPJS
-
-            </label>
-
-            <input type="number"
-                   class="form-control"
-                   id="pot_BPJS"
-                   name="pot_BPJS"
-                   required>
-
-        </div>
-
-        <!-- TRANSPORT -->
-        <div class="mb-3">
-
-            <label class="form-label">
-
-                Transportasi
-
-            </label>
-
-            <input type="number"
-                   class="form-control"
-                   id="transportasi"
-                   name="transportasi"
-                   required>
-
-        </div>
-
-        <!-- POTONGAN ABSEN -->
-        <div class="mb-3">
-
-            <label class="form-label">
-
-                Potongan Absen
-
-            </label>
-
-            <input type="number"
-                   class="form-control"
-                   id="pot_absen"
-                   name="pot_absen"
-                   value="0">
-
-        </div>
-
-        <!-- LEMBUR -->
-        <div class="mb-3">
-
-            <label class="form-label">
-
-                Lembur
-
-            </label>
-
-            <select class="form-control"
-                    id="lembur"
-                    name="lembur"
-                    required>
-
-                <option value="Tidak">
-                    Tidak
-                </option>
-
-                <option value="Iya">
-                    Iya
-                </option>
-
-            </select>
-
-        </div>
-
-        <!-- TOTAL -->
-        <div class="mb-3">
-
-            <label class="form-label">
-
-                Total Gaji
-
-            </label>
-
-            <input type="number"
-                   class="form-control"
-                   id="salary"
-                   name="salary"
-                   readonly
-                   value="0">
-
-        </div>
-
-        <div class="d-flex justify-content-between">
-
-            <a href="admin_gaji.php"
-               class="btn btn-secondary">
-
-                Kembali
-
-            </a>
-
-            <button type="submit"
-                    class="btn btn-primary">
-
-                Simpan
-
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert">
             </button>
 
         </div>
 
-    </form>
+        <?php unset($_SESSION['notif']); ?>
+
+    <?php endif; ?>
+
+    <!-- DETAIL -->
+    <div class="mb-4">
+
+        <p>
+
+            <strong>NIP:</strong>
+
+            <?= htmlspecialchars($data['NIP']) ?>
+
+        </p>
+
+        <p>
+
+            <strong>Nama:</strong>
+
+            <?= htmlspecialchars($data['nama']) ?>
+
+        </p>
+
+        <p>
+
+            <strong>Posisi:</strong>
+
+            <?= htmlspecialchars($data['Hak']) ?>
+
+        </p>
+
+    </div>
+
+    <!-- TABEL -->
+    <div class="table-responsive">
+
+        <table class="table table-bordered">
+
+            <thead>
+
+                <tr>
+
+                    <th>Tanggal Awal</th>
+                    <th>Tanggal Akhir</th>
+                    <th>Jenis Cuti</th>
+                    <th>Tanggal Pengajuan</th>
+                    <th>Konfirmasi Pengajuan</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                <tr>
+
+                    <td>
+
+                        <?= htmlspecialchars($data['tanggal_awal']) ?>
+
+                    </td>
+
+                    <td>
+
+                        <?= htmlspecialchars($data['tanggal_akhir']) ?>
+
+                    </td>
+
+                    <td>
+
+                        <?= htmlspecialchars($data['jenis_cuti']) ?>
+
+                    </td>
+
+                    <td>
+
+                        <?= htmlspecialchars($data['tanggal_pengajuan']) ?>
+
+                    </td>
+
+                    <td>
+
+                        <div class="d-flex justify-content-center">
+
+                            <!-- SETUJUI -->
+                            <form method="POST"
+                                  class="me-2">
+
+                                <button type="submit"
+                                        name="status"
+                                        value="Disetujui"
+                                        class="btn btn-success btn-sm">
+
+                                    Setujui
+
+                                </button>
+
+                            </form>
+
+                            <!-- TOLAK -->
+                            <form method="POST">
+
+                                <button type="submit"
+                                        name="status"
+                                        value="Ditolak"
+                                        class="btn btn-danger btn-sm">
+
+                                    Tolak
+
+                                </button>
+
+                            </form>
+
+                        </div>
+
+                    </td>
+
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+<?php
+// ======================
+// UPDATE STATUS
+// ======================
+if (
+    $_SERVER['REQUEST_METHOD'] === 'POST' &&
+    isset($_POST['status'])
+) {
+
+    $status = $_POST['status'];
+
+    if (
+        in_array(
+            $status,
+            ['Disetujui', 'Ditolak']
+        )
+    ) {
+
+        $stmtUpdate = $conn->prepare("
+            UPDATE admin_pengajuan_cuti
+            SET status = :status
+            WHERE id_cuti = :id
+        ");
+
+        $result = $stmtUpdate->execute([
+
+            ':status' => $status,
+
+            ':id' => $id_cuti
+        ]);
+
+        if ($result) {
+
+            $_SESSION['notif'] =
+                "Status pengajuan cuti berhasil diperbarui menjadi '$status'.";
+
+            header("Location: admin_cuti_utama.php");
+
+            exit();
+        }
+    }
+}
+?>
 
 </div>
 
-<script>
-
-document.addEventListener("DOMContentLoaded", function () {
-
-    const nipSelect =
-        document.getElementById('NIP');
-
-    const namaInput =
-        document.getElementById('nama_user');
-
-    const hakInput =
-        document.getElementById('hak');
-
-    const employeeData =
-        <?= json_encode($nips); ?>;
-
-    // ======================
-    // AUTO HITUNG TOTAL
-    // ======================
-    function calculateTotal() {
-
-        const baseSalary =
-            parseFloat(
-                document.getElementById('base_salary').value
-            ) || 0;
-
-        const bpjs =
-            parseFloat(
-                document.getElementById('pot_BPJS').value
-            ) || 0;
-
-        const transport =
-            parseFloat(
-                document.getElementById('transportasi').value
-            ) || 0;
-
-        const potAbsen =
-            parseFloat(
-                document.getElementById('pot_absen').value
-            ) || 0;
-
-        const lembur =
-            document.getElementById('lembur').value;
-
-        const lemburRate =
-            (lembur === 'Iya')
-            ? 50000
-            : 0;
-
-        const total =
-            baseSalary
-            - bpjs
-            - potAbsen
-            + transport
-            + lemburRate;
-
-        document.getElementById('salary').value =
-            total;
-    }
-
-    document.getElementById('base_salary')
-        .addEventListener('input', calculateTotal);
-
-    document.getElementById('pot_BPJS')
-        .addEventListener('input', calculateTotal);
-
-    document.getElementById('transportasi')
-        .addEventListener('input', calculateTotal);
-
-    document.getElementById('pot_absen')
-        .addEventListener('input', calculateTotal);
-
-    document.getElementById('lembur')
-        .addEventListener('change', calculateTotal);
-});
-
-</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>
+
+<?php
+
+    } else {
+
+        echo "
+        <div class='alert alert-danger'>
+
+            Data pengajuan cuti tidak ditemukan untuk ID ini.
+
+        </div>
+        ";
+    }
+
+} else {
+
+    echo "
+    <div class='alert alert-warning'>
+
+        ID Cuti tidak valid!
+
+    </div>
+    ";
+}
+
+ob_end_flush();
+?>
