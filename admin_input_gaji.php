@@ -13,198 +13,19 @@ require_once "template_admin/navbar.php";
 $conn = $koneksi;
 
 // ======================
-// SIMPAN DATA
-// ======================
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
-    $NIP = $_POST['NIP'];
-
-    $nama_user = $_POST['nama_user'];
-
-    $hak = $_POST['hak'];
-
-    $periode = $_POST['periode'];
-
-    $tanggal_gaji = $_POST['tanggal_gaji'];
-
-    $base_salary = $_POST['base_salary'];
-
-    $pot_BPJS = $_POST['pot_BPJS'];
-
-    $transportasi = $_POST['transportasi'];
-
-    $pot_absen = $_POST['pot_absen'];
-
-    $lembur = $_POST['lembur'];
-
-    // ======================
-    // HITUNG LEMBUR
-    // ======================
-    $gajiLembur =
-        ($lembur === 'Iya')
-        ? 50000
-        : 0;
-
-    // ======================
-    // HITUNG TOTAL
-    // ======================
-    $salary =
-        $base_salary
-        - $pot_BPJS
-        - $pot_absen
-        + $transportasi
-        + $gajiLembur;
-
-    // ======================
-    // INSERT / UPDATE
-    // ======================
-    $cek = $conn->prepare("
-        SELECT COUNT(*)
-        FROM admin_penggajian
-        WHERE NIP = :nip
-    ");
-
-    $cek->execute([
-        ':nip' => $NIP
-    ]);
-
-    $exists = $cek->fetchColumn();
-
-    if ($exists > 0) {
-
-        $stmt = $conn->prepare("
-            UPDATE admin_penggajian
-            SET
-                nama_user = :nama_user,
-                hak = :hak,
-                periode = :periode,
-                tanggal_gaji = :tanggal_gaji,
-                base_salary = :base_salary,
-                pot_BPJS = :pot_BPJS,
-                transportasi = :transportasi,
-                pot_absen = :pot_absen,
-                lembur = :lembur,
-                salary = :salary
-            WHERE NIP = :nip
-        ");
-
-    } else {
-
-        $stmt = $conn->prepare("
-            INSERT INTO admin_penggajian (
-                NIP,
-                nama_user,
-                hak,
-                periode,
-                tanggal_gaji,
-                base_salary,
-                pot_BPJS,
-                transportasi,
-                pot_absen,
-                lembur,
-                salary
-            )
-            VALUES (
-                :nip,
-                :nama_user,
-                :hak,
-                :periode,
-                :tanggal_gaji,
-                :base_salary,
-                :pot_BPJS,
-                :transportasi,
-                :pot_absen,
-                :lembur,
-                :salary
-            )
-        ");
-    }
-
-    $result = $stmt->execute([
-
-        ':nip' => $NIP,
-
-        ':nama_user' => $nama_user,
-
-        ':hak' => $hak,
-
-        ':periode' => $periode,
-
-        ':tanggal_gaji' => $tanggal_gaji,
-
-        ':base_salary' => $base_salary,
-
-        ':pot_BPJS' => $pot_BPJS,
-
-        ':transportasi' => $transportasi,
-
-        ':pot_absen' => $pot_absen,
-
-        ':lembur' => $lembur,
-
-        ':salary' => $salary
-    ]);
-
-    if ($result) {
-
-        header("Location: admin_gaji.php?success=1");
-
-        exit;
-
-    } else {
-
-        $error = "Gagal menyimpan data.";
-    }
-}
-
-// ======================
 // AMBIL DATA USER
-// ======================
-$name = '';
-
-$position = '';
-
-if (isset($_GET['NIP'])) {
-
-    $NIP = $_GET['NIP'];
-
-    $stmt = $conn->prepare("
-        SELECT
-            nama_user,
-            hak
-        FROM user
-        WHERE NIP = :nip
-    ");
-
-    $stmt->execute([
-        ':nip' => $NIP
-    ]);
-
-    $employee =
-        $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if ($employee) {
-
-        $name =
-            $employee['nama_user'];
-
-        $position =
-            $employee['hak'];
-    }
-}
-
-// ======================
-// AMBIL SEMUA NIP
 // ======================
 $stmt = $conn->prepare("
     SELECT
-        NIP
+        NIP,
+        nama_user,
+        hak
     FROM user
 ");
 
 $stmt->execute();
 
-$nips =
+$employees =
     $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 ?>
@@ -225,285 +46,317 @@ $nips =
 <link rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 
+<style>
+
+body {
+    background-color: #f8f9fa;
+}
+
+.container {
+    margin-top: 40px;
+}
+
+.card {
+    border-radius: 10px;
+}
+
+</style>
+
 </head>
 
 <body>
 
-<div class="container mt-5">
+<div class="container">
 
-    <h2 class="text-center">
+    <div class="card shadow">
 
-        Input Gaji Karyawan
+        <div class="card-header bg-primary text-white">
 
-    </h2>
+            <h4 class="mb-0">
 
-    <?php if (isset($error)): ?>
+                Input Gaji Karyawan
 
-        <div class="alert alert-danger">
-
-            <?= htmlspecialchars($error) ?>
+            </h4>
 
         </div>
 
-    <?php endif; ?>
+        <div class="card-body">
 
-    <form action="admin_input_gaji.php"
-          method="POST">
+            <!-- ALERT -->
+            <?php if (isset($_SESSION['message'])): ?>
 
-        <!-- NIP -->
-        <div class="mb-3">
+                <div class="alert alert-success">
 
-            <label class="form-label">
+                    <?= htmlspecialchars($_SESSION['message']); ?>
 
-                NIP
+                </div>
 
-            </label>
+                <?php unset($_SESSION['message']); ?>
 
-            <select class="form-control"
-                    id="NIP"
-                    name="NIP"
-                    required>
+            <?php endif; ?>
 
-                <option value="">
-                    Pilih NIP
-                </option>
+            <!-- FORM -->
+            <form action="simpan_gaji.php"
+                  method="POST">
 
-                <?php foreach ($nips as $nip): ?>
+                <!-- NIP -->
+                <div class="mb-3">
 
-                    <option value="<?= $nip['NIP']; ?>">
+                    <label class="form-label">
 
-                        <?= $nip['NIP']; ?>
+                        NIP
 
-                    </option>
+                    </label>
 
-                <?php endforeach; ?>
+                    <select class="form-control"
+                            id="NIP"
+                            name="NIP"
+                            required>
 
-            </select>
+                        <option value="">
+                            Pilih NIP
+                        </option>
+
+                        <?php foreach ($employees as $employee): ?>
+
+                            <option
+                                value="<?= htmlspecialchars($employee['NIP']); ?>"
+                                data-nama="<?= htmlspecialchars($employee['nama_user']); ?>"
+                                data-hak="<?= htmlspecialchars($employee['hak']); ?>">
+
+                                <?= htmlspecialchars($employee['NIP']); ?>
+
+                            </option>
+
+                        <?php endforeach; ?>
+
+                    </select>
+
+                </div>
+
+                <!-- NAMA -->
+                <div class="mb-3">
+
+                    <label class="form-label">
+
+                        Nama Karyawan
+
+                    </label>
+
+                    <input type="text"
+                           class="form-control"
+                           id="nama_user"
+                           name="nama_user"
+                           readonly
+                           required>
+
+                </div>
+
+                <!-- POSISI -->
+                <div class="mb-3">
+
+                    <label class="form-label">
+
+                        Posisi
+
+                    </label>
+
+                    <input type="text"
+                           class="form-control"
+                           id="hak"
+                           name="hak"
+                           readonly
+                           required>
+
+                </div>
+
+                <!-- PERIODE -->
+                <div class="mb-3">
+
+                    <label class="form-label">
+
+                        Periode
+
+                    </label>
+
+                    <select class="form-control"
+                            name="periode"
+                            required>
+
+                        <option value="">
+                            Pilih Periode
+                        </option>
+
+                        <option value="Januari 2026">
+                            Januari 2026
+                        </option>
+
+                        <option value="Februari 2026">
+                            Februari 2026
+                        </option>
+
+                        <option value="Maret 2026">
+                            Maret 2026
+                        </option>
+
+                        <option value="April 2026">
+                            April 2026
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <!-- TANGGAL GAJI -->
+                <div class="mb-3">
+
+                    <label class="form-label">
+
+                        Tanggal Gaji
+
+                    </label>
+
+                    <input type="date"
+                           class="form-control"
+                           name="tanggal_gaji"
+                           required>
+
+                </div>
+
+                <!-- GAJI POKOK -->
+                <div class="mb-3">
+
+                    <label class="form-label">
+
+                        Gaji Pokok
+
+                    </label>
+
+                    <input type="number"
+                           class="form-control"
+                           id="base_salary"
+                           name="base_salary"
+                           required>
+
+                </div>
+
+                <!-- BPJS -->
+                <div class="mb-3">
+
+                    <label class="form-label">
+
+                        Potongan BPJS
+
+                    </label>
+
+                    <input type="number"
+                           class="form-control"
+                           id="pot_BPJS"
+                           name="pot_BPJS"
+                           required>
+
+                </div>
+
+                <!-- TRANSPORTASI -->
+                <div class="mb-3">
+
+                    <label class="form-label">
+
+                        Transportasi
+
+                    </label>
+
+                    <input type="number"
+                           class="form-control"
+                           id="transportasi"
+                           name="transportasi"
+                           required>
+
+                </div>
+
+                <!-- POTONGAN ABSEN -->
+                <div class="mb-3">
+
+                    <label class="form-label">
+
+                        Potongan Absen
+
+                    </label>
+
+                    <input type="number"
+                           class="form-control"
+                           id="pot_absen"
+                           name="pot_absen"
+                           value="0">
+
+                </div>
+
+                <!-- LEMBUR -->
+                <div class="mb-3">
+
+                    <label class="form-label">
+
+                        Lembur
+
+                    </label>
+
+                    <select class="form-control"
+                            id="lembur"
+                            name="lembur"
+                            required>
+
+                        <option value="Tidak">
+                            Tidak
+                        </option>
+
+                        <option value="Iya">
+                            Iya
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <!-- TOTAL -->
+                <div class="mb-3">
+
+                    <label class="form-label">
+
+                        Total Gaji
+
+                    </label>
+
+                    <input type="number"
+                           class="form-control"
+                           id="salary"
+                           readonly>
+
+                </div>
+
+                <!-- BUTTON -->
+                <div class="d-flex justify-content-between">
+
+                    <a href="admin_gaji.php"
+                       class="btn btn-secondary">
+
+                        Kembali
+
+                    </a>
+
+                    <button type="submit"
+                            class="btn btn-primary">
+
+                        Simpan Data
+
+                    </button>
+
+                </div>
+
+            </form>
 
         </div>
 
-        <!-- NAMA -->
-        <div class="mb-3">
-
-            <label class="form-label">
-
-                Nama Karyawan
-
-            </label>
-
-            <input type="text"
-                   class="form-control"
-                   id="nama_user"
-                   name="nama_user"
-                   value="<?= htmlspecialchars($name) ?>"
-                   readonly>
-
-        </div>
-
-        <!-- POSISI -->
-        <div class="mb-3">
-
-            <label class="form-label">
-
-                Posisi
-
-            </label>
-
-            <input type="text"
-                   class="form-control"
-                   id="hak"
-                   name="hak"
-                   value="<?= htmlspecialchars($position) ?>"
-                   readonly>
-
-        </div>
-
-        <!-- PERIODE -->
-        <div class="mb-3">
-
-            <label class="form-label">
-
-                Periode
-
-            </label>
-
-            <select class="form-control"
-                    id="periode"
-                    name="periode"
-                    required>
-
-                <option value="">
-                    Pilih Periode
-                </option>
-
-                <option value="2025-01-01 to 2025-03-31">
-                    Januari - Maret 2025
-                </option>
-
-                <option value="2025-04-01 to 2025-06-30">
-                    April - Juni 2025
-                </option>
-
-                <option value="2025-07-01 to 2025-09-30">
-                    Juli - September 2025
-                </option>
-
-                <option value="2025-10-01 to 2025-12-31">
-                    Oktober - Desember 2025
-                </option>
-
-            </select>
-
-        </div>
-
-        <!-- TANGGAL -->
-        <div class="mb-3">
-
-            <label class="form-label">
-
-                Tanggal Gaji
-
-            </label>
-
-            <input type="date"
-                   class="form-control"
-                   id="tanggal_gaji"
-                   name="tanggal_gaji"
-                   required>
-
-        </div>
-
-        <!-- GAJI POKOK -->
-        <div class="mb-3">
-
-            <label class="form-label">
-
-                Gaji Pokok
-
-            </label>
-
-            <input type="number"
-                   class="form-control"
-                   id="base_salary"
-                   name="base_salary"
-                   required>
-
-        </div>
-
-        <!-- BPJS -->
-        <div class="mb-3">
-
-            <label class="form-label">
-
-                Potongan BPJS
-
-            </label>
-
-            <input type="number"
-                   class="form-control"
-                   id="pot_BPJS"
-                   name="pot_BPJS"
-                   required>
-
-        </div>
-
-        <!-- TRANSPORT -->
-        <div class="mb-3">
-
-            <label class="form-label">
-
-                Transportasi
-
-            </label>
-
-            <input type="number"
-                   class="form-control"
-                   id="transportasi"
-                   name="transportasi"
-                   required>
-
-        </div>
-
-        <!-- POTONGAN ABSEN -->
-        <div class="mb-3">
-
-            <label class="form-label">
-
-                Potongan Absen
-
-            </label>
-
-            <input type="number"
-                   class="form-control"
-                   id="pot_absen"
-                   name="pot_absen"
-                   value="0">
-
-        </div>
-
-        <!-- LEMBUR -->
-        <div class="mb-3">
-
-            <label class="form-label">
-
-                Lembur
-
-            </label>
-
-            <select class="form-control"
-                    id="lembur"
-                    name="lembur"
-                    required>
-
-                <option value="Tidak">
-                    Tidak
-                </option>
-
-                <option value="Iya">
-                    Iya
-                </option>
-
-            </select>
-
-        </div>
-
-        <!-- TOTAL -->
-        <div class="mb-3">
-
-            <label class="form-label">
-
-                Total Gaji
-
-            </label>
-
-            <input type="number"
-                   class="form-control"
-                   id="salary"
-                   name="salary"
-                   readonly
-                   value="0">
-
-        </div>
-
-        <div class="d-flex justify-content-between">
-
-            <a href="admin_gaji.php"
-               class="btn btn-secondary">
-
-                Kembali
-
-            </a>
-
-            <button type="submit"
-                    class="btn btn-primary">
-
-                Simpan
-
-            </button>
-
-        </div>
-
-    </form>
+    </div>
 
 </div>
 
@@ -520,13 +373,25 @@ document.addEventListener("DOMContentLoaded", function () {
     const hakInput =
         document.getElementById('hak');
 
-    const employeeData =
-        <?= json_encode($nips); ?>;
+    // ======================
+    // AUTO FILL DATA USER
+    // ======================
+    nipSelect.addEventListener('change', function () {
+
+        const selectedOption =
+            this.options[this.selectedIndex];
+
+        namaInput.value =
+            selectedOption.getAttribute('data-nama');
+
+        hakInput.value =
+            selectedOption.getAttribute('data-hak');
+    });
 
     // ======================
-    // AUTO HITUNG TOTAL
+    // HITUNG TOTAL
     // ======================
-    function calculateTotal() {
+    function hitungTotal() {
 
         const baseSalary =
             parseFloat(
@@ -538,7 +403,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 document.getElementById('pot_BPJS').value
             ) || 0;
 
-        const transport =
+        const transportasi =
             parseFloat(
                 document.getElementById('transportasi').value
             ) || 0;
@@ -551,7 +416,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const lembur =
             document.getElementById('lembur').value;
 
-        const lemburRate =
+        const gajiLembur =
             (lembur === 'Iya')
             ? 50000
             : 0;
@@ -560,27 +425,28 @@ document.addEventListener("DOMContentLoaded", function () {
             baseSalary
             - bpjs
             - potAbsen
-            + transport
-            + lemburRate;
+            + transportasi
+            + gajiLembur;
 
         document.getElementById('salary').value =
             total;
     }
 
     document.getElementById('base_salary')
-        .addEventListener('input', calculateTotal);
+        .addEventListener('input', hitungTotal);
 
     document.getElementById('pot_BPJS')
-        .addEventListener('input', calculateTotal);
+        .addEventListener('input', hitungTotal);
 
     document.getElementById('transportasi')
-        .addEventListener('input', calculateTotal);
+        .addEventListener('input', hitungTotal);
 
     document.getElementById('pot_absen')
-        .addEventListener('input', calculateTotal);
+        .addEventListener('input', hitungTotal);
 
     document.getElementById('lembur')
-        .addEventListener('change', calculateTotal);
+        .addEventListener('change', hitungTotal);
+
 });
 
 </script>
