@@ -1,8 +1,10 @@
 <?php
 ob_start();
+
 session_start();
 
 require_once 'config.php';
+
 require_once "template_admin/header.php";
 require_once "template_admin/sidebar.php";
 require_once "template_admin/navbar.php";
@@ -10,8 +12,7 @@ require_once "template_admin/navbar.php";
 // ======================
 // KONEKSI DATABASE
 // ======================
-$db = new Database();
-$conn = $db->getConnection();
+$conn = $koneksi;
 
 // ======================
 // VALIDASI ID CUTI
@@ -24,8 +25,8 @@ if (isset($_GET['id_cuti'])) {
     // AMBIL DATA CUTI
     // ======================
     $stmt = $conn->prepare("
-        SELECT * 
-        FROM admin_pengajuan_cuti 
+        SELECT *
+        FROM admin_pengajuan_cuti
         WHERE id_cuti = :id
     ");
 
@@ -33,7 +34,8 @@ if (isset($_GET['id_cuti'])) {
         ':id' => $id_cuti
     ]);
 
-    $data = $stmt->fetch(PDO::FETCH_ASSOC);
+    $data =
+        $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($data) {
 ?>
@@ -41,10 +43,15 @@ if (isset($_GET['id_cuti'])) {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Detail Permohonan Cuti</title>
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>
+    Detail Permohonan Cuti
+</title>
 
 <link rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
@@ -52,7 +59,7 @@ if (isset($_GET['id_cuti'])) {
 <style>
 
 body {
-    font-family: 'Arial', sans-serif;
+    font-family: Arial, sans-serif;
     background-color: #f8f9fa;
 }
 
@@ -87,6 +94,7 @@ body {
 }
 
 </style>
+
 </head>
 
 <body>
@@ -94,7 +102,9 @@ body {
 <div class="content p-4">
 
     <h2 class="text-center fw-bold">
+
         Detail Permohonan Cuti Karyawan
+
     </h2>
 
     <!-- NOTIF -->
@@ -119,18 +129,27 @@ body {
     <div class="mb-4">
 
         <p>
+
             <strong>NIP:</strong>
+
             <?= htmlspecialchars($data['NIP']) ?>
+
         </p>
 
         <p>
+
             <strong>Nama:</strong>
+
             <?= htmlspecialchars($data['nama']) ?>
+
         </p>
 
         <p>
+
             <strong>Posisi:</strong>
+
             <?= htmlspecialchars($data['Hak']) ?>
+
         </p>
 
     </div>
@@ -143,11 +162,13 @@ body {
             <thead>
 
                 <tr>
+
                     <th>Tanggal Awal</th>
                     <th>Tanggal Akhir</th>
                     <th>Jenis Cuti</th>
                     <th>Tanggal Pengajuan</th>
                     <th>Konfirmasi Pengajuan</th>
+
                 </tr>
 
             </thead>
@@ -157,19 +178,27 @@ body {
                 <tr>
 
                     <td>
+
                         <?= htmlspecialchars($data['tanggal_awal']) ?>
+
                     </td>
 
                     <td>
+
                         <?= htmlspecialchars($data['tanggal_akhir']) ?>
+
                     </td>
 
                     <td>
+
                         <?= htmlspecialchars($data['jenis_cuti']) ?>
+
                     </td>
 
                     <td>
+
                         <?= htmlspecialchars($data['tanggal_pengajuan']) ?>
+
                     </td>
 
                     <td>
@@ -177,7 +206,8 @@ body {
                         <div class="d-flex justify-content-center">
 
                             <!-- SETUJUI -->
-                            <form method="POST" class="me-2">
+                            <form method="POST"
+                                  class="me-2">
 
                                 <button type="submit"
                                         name="status"
@@ -220,20 +250,30 @@ body {
 // ======================
 // UPDATE STATUS
 // ======================
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['status'])) {
+if (
+    $_SERVER['REQUEST_METHOD'] === 'POST' &&
+    isset($_POST['status'])
+) {
 
     $status = $_POST['status'];
 
-    if (in_array($status, ['Disetujui', 'Ditolak'])) {
+    if (
+        in_array(
+            $status,
+            ['Disetujui', 'Ditolak']
+        )
+    ) {
 
         $stmtUpdate = $conn->prepare("
-            UPDATE admin_pengajuan_cuti 
-            SET status = :status 
+            UPDATE admin_pengajuan_cuti
+            SET status = :status
             WHERE id_cuti = :id
         ");
 
         $result = $stmtUpdate->execute([
+
             ':status' => $status,
+
             ':id' => $id_cuti
         ]);
 
@@ -243,6 +283,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['status'])) {
                 "Status pengajuan cuti berhasil diperbarui menjadi '$status'.";
 
             header("Location: admin_cuti_utama.php");
+
             exit();
         }
     }
@@ -262,16 +303,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['status'])) {
 
         echo "
         <div class='alert alert-danger'>
+
             Data pengajuan cuti tidak ditemukan untuk ID ini.
-        </div>";
+
+        </div>
+        ";
     }
 
 } else {
 
     echo "
     <div class='alert alert-warning'>
+
         ID Cuti tidak valid!
-    </div>";
+
+    </div>
+    ";
 }
 
 ob_end_flush();
