@@ -1,93 +1,177 @@
 <?php
-// Koneksi ke database
-class Database {
-    private $host = "localhost";
-    private $db_name = "penggajian";
-    private $username = "root";
-    private $password = "";
-    public $conn;
+session_start();
 
-    public function getConnection() {
-        $this->conn = null;
-        try {
-            $this->conn = new PDO("mysql:host=" . $this->host . ";dbname=" . $this->db_name, $this->username, $this->password);
-            $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        } catch (PDOException $exception) {
-            echo "Connection error: " . $exception->getMessage();
-        }
-        return $this->conn;
-    }
+require_once "config.php";
+
+// ======================
+// FORMAT RUPIAH
+// ======================
+function formatRupiah($angka)
+{
+    return "Rp " . number_format($angka, 0, ',', '.');
 }
 
-// Format angka ke dalam format Rupiah
-function formatRupiah($angka) {
-    return "Rp" . number_format($angka, 0, ',', '.');
-}
-
-// Ambil data dari form POST
+// ======================
+// PROSES FORM
+// ======================
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+
+    // ======================
+    // AMBIL DATA FORM
+    // ======================
     $NIP = $_POST['NIP'];
     $nama_user = $_POST['nama_user'];
     $tanggal_gaji = $_POST['tanggal_gaji'];
     $hak = $_POST['hak'];
     $periode = $_POST['periode'];
+
     $baseSalary = $_POST['base_salary'];
     $potBPJS = $_POST['pot_BPJS'];
     $transportasi = $_POST['transportasi'];
     $potAbsen = $_POST['pot_absen'];
-    $lembur = $_POST['lembur']; // Nilai dari dropdown ("Iya" atau "Tidak")
 
-    // Hitung gaji lembur (tambah 50 jika lembur "Iya")
-    $gajiLembur = ($lembur === "Iya") ? 50000 : 0;
+    $lembur = $_POST['lembur'];
 
-    // Hitung total gaji
-    $totalGaji = $baseSalary - $potBPJS - $potAbsen + $transportasi + $gajiLembur;
+    // ======================
+    // HITUNG LEMBUR
+    // ======================
+    $gajiLembur =
+        ($lembur === "Iya")
+        ? 50000
+        : 0;
 
-    // Koneksi ke database
-    $database = new Database();
-    $conn = $database->getConnection();
+    // ======================
+    // TOTAL GAJI
+    // ======================
+    $totalGaji =
+        $baseSalary
+        - $potBPJS
+        - $potAbsen
+        + $transportasi
+        + $gajiLembur;
 
-    // Cek apakah NIP sudah ada
-    $checkQuery = "SELECT COUNT(*) FROM admin_penggajian WHERE NIP = :NIP";
-    $stmt = $conn->prepare($checkQuery);
-    $stmt->bindParam(':NIP', $NIP);
-    $stmt->execute();
-    $exists = $stmt->fetchColumn();
+    try {
 
-    // Jika NIP sudah ada, lakukan UPDATE
-    if ($exists > 0) {
-        $query = "UPDATE admin_penggajian 
-          SET nama_user = :nama_user, hak = :hak, base_salary = :base_salary, periode = :periode, pot_BPJS = :pot_BPJS, tanggal_gaji = :tanggal_gaji,
-              transportasi = :transportasi, pot_absen = :pot_absen, lembur = :lembur, salary = :salary 
-          WHERE NIP = :NIP";
+        // ======================
+        // CEK NIP
+        // ======================
+        $stmt = $koneksi->prepare("
+            SELECT COUNT(*)
+            FROM admin_penggajian
+            WHERE NIP = :nip
+        ");
 
-    } else {
-        // Jika NIP belum ada, lakukan INSERT
-        $query = "INSERT INTO admin_penggajian (NIP, nama_user, hak, periode, base_salary, pot_BPJS, tanggal_gaji, transportasi, pot_absen, lembur, salary) 
-                  VALUES (:NIP, :nama_user, :hak, :base_salary, :periode, :pot_BPJS, :tanggal_gaji, :transportasi, :pot_absen, :lembur, :salary)";
-    }
+        $stmt->execute([
+            ':nip' => $NIP
+        ]);
 
-    // Prepare statement dan bind parameter
-    $stmt = $conn->prepare($query);
-    $stmt->bindParam(':NIP', $NIP);
-    $stmt->bindParam(':nama_user', $nama_user);
-    $stmt->bindParam(':hak', $hak);
-    $stmt->bindParam(':periode', $periode);
-    $stmt->bindParam(':base_salary', $baseSalary);
-    $stmt->bindParam(':tanggal_gaji', $tanggal_gaji);
-    $stmt->bindParam(':pot_BPJS', $potBPJS);
-    $stmt->bindParam(':transportasi', $transportasi);
-    $stmt->bindParam(':pot_absen', $potAbsen);
-    $stmt->bindParam(':lembur', $lembur);
-    $stmt->bindParam(':salary', $totalGaji);
+        $exists = $stmt->fetchColumn();
 
-    // Execute query
-    if ($stmt->execute()) {
-        // Redirect ke halaman admin gaji
-        header("Location: admin_gaji.php"); // Ganti dengan URL halaman admin gaji
-        exit();
-    } else {
-        echo "Terjadi kesalahan saat menyimpan data.";
+        // ======================
+        // UPDATE DATA
+        // ======================
+        if ($exists > 0) {
+
+            $query = "
+                UPDATE admin_penggajian
+                SET
+                    nama_user = :nama_user,
+                    hak = :hak,
+                    periode = :periode,
+                    base_salary = :base_salary,
+                    pot_BPJS = :pot_bpjs,
+                    tanggal_gaji = :tanggal_gaji,
+                    transportasi = :transportasi,
+                    pot_absen = :pot_absen,
+                    lembur = :lembur,
+                    salary = :salary
+                WHERE NIP = :nip
+            ";
+
+        } else {
+
+            // ======================
+            // INSERT DATA
+            // ======================
+            $query = "
+                INSERT INTO admin_penggajian (
+                    NIP,
+                    nama_user,
+                    hak,
+                    periode,
+                    base_salary,
+                    pot_BPJS,
+                    tanggal_gaji,
+                    transportasi,
+                    pot_absen,
+                    lembur,
+                    salary
+                )
+                VALUES (
+                    :nip,
+                    :nama_user,
+                    :hak,
+                    :periode,
+                    :base_salary,
+                    :pot_bpjs,
+                    :tanggal_gaji,
+                    :transportasi,
+                    :pot_absen,
+                    :lembur,
+                    :salary
+                )
+            ";
+        }
+
+        // ======================
+        // EXECUTE QUERY
+        // ======================
+        $stmt = $koneksi->prepare($query);
+
+        $result = $stmt->execute([
+
+            ':nip' => $NIP,
+            ':nama_user' => $nama_user,
+            ':hak' => $hak,
+            ':periode' => $periode,
+            ':base_salary' => $baseSalary,
+            ':pot_bpjs' => $potBPJS,
+            ':tanggal_gaji' => $tanggal_gaji,
+            ':transportasi' => $transportasi,
+            ':pot_absen' => $potAbsen,
+            ':lembur' => $lembur,
+            ':salary' => $totalGaji
+        ]);
+
+        // ======================
+        // BERHASIL
+        // ======================
+        if ($result) {
+
+            $_SESSION['message'] =
+                "Data gaji berhasil disimpan.";
+
+            $_SESSION['message_type'] =
+                "success";
+
+            header("Location: admin_gaji.php");
+
+            exit();
+
+        } else {
+
+            echo "
+            <div class='alert alert-danger'>
+
+                Terjadi kesalahan saat menyimpan data.
+
+            </div>
+            ";
+        }
+
+    } catch (PDOException $e) {
+
+        die("Terjadi kesalahan database: " . $e->getMessage());
     }
 }
 ?>
