@@ -1,37 +1,68 @@
 <?php
+
 class Auth {
+
     protected $koneksi;
     protected $NIP;
     protected $password;
 
     public function __construct($koneksi, $NIP, $password) {
+
         $this->koneksi = $koneksi;
         $this->NIP = $NIP;
         $this->password = $password;
     }
 
-    // Fungsi login tanpa hashing
+    // ======================
+    // LOGIN USER
+    // ======================
     public function login() {
-        // Query untuk mencari pengguna berdasarkan NIP
-        $query = "SELECT * FROM user WHERE NIP = ?";
-        $stmt = $this->koneksi->prepare($query);
-        
-        if (!$stmt) {
-            die("Kesalahan query: " . $this->koneksi->error);
+
+        try {
+
+            // QUERY USER
+            $stmt = $this->koneksi->prepare("
+                SELECT *
+                FROM user
+                WHERE NIP = :nip
+                LIMIT 1
+            ");
+
+            $stmt->execute([
+                ':nip' => $this->NIP
+            ]);
+
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // ======================
+            // CEK USER
+            // ======================
+            if ($user) {
+
+                // ======================
+                // PASSWORD HASH
+                // ======================
+                if (password_verify($this->password, $user['password'])) {
+
+                    return $user;
+                }
+
+                // ======================
+                // BACKUP PASSWORD LAMA
+                // (kalau database lama masih plain text)
+                // ======================
+                if ($this->password === $user['password']) {
+
+                    return $user;
+                }
+            }
+
+            return false;
+
+        } catch (PDOException $e) {
+
+            die("Login error: " . $e->getMessage());
         }
-
-        // Bind parameter dan eksekusi query
-        $stmt->bind_param('s', $this->NIP);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $user = $result->fetch_assoc();
-
-        // Jika pengguna ditemukan dan password valid
-        if ($user && $this->password === $user['password']) {
-            return $user;  // Mengembalikan data pengguna
-        }
-
-        return false;  // Jika username atau password salah
     }
 }
 
