@@ -1,8 +1,17 @@
 <?php
 session_start();
-require_once 'config.php';
 
-// Kelas untuk operasi staff
+require_once 'Database.php';
+
+// ======================
+// KONEKSI DATABASE
+// ======================
+$db = new Database();
+$koneksi = $db->getConnection();
+
+// ======================
+// CLASS STAFF
+// ======================
 class Staff
 {
     private $koneksi;
@@ -12,26 +21,56 @@ class Staff
         $this->koneksi = $koneksi;
     }
 
+    // ======================
+    // AMBIL STAFF
+    // ======================
     public function getStaffByNIP($NIP)
     {
-        $sql = "SELECT * FROM user WHERE NIP = ?";
-        $stmt = $this->koneksi->prepare($sql);
-        $stmt->bind_param("s", $NIP);
-        $stmt->execute();
-        return $stmt->get_result()->fetch_assoc();
+        $stmt = $this->koneksi->prepare("
+            SELECT * 
+            FROM user 
+            WHERE NIP = :nip
+        ");
+
+        $stmt->execute([
+            ':nip' => $NIP
+        ]);
+
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    // ======================
+    // UPDATE STAFF
+    // ======================
     public function updateStaff($NIP, $nama_user, $tgl_lahir, $alamat, $no_telp, $hak)
     {
-        $sql = "UPDATE user SET nama_user = ?, tgl_lahir = ?, alamat = ?, no_telp = ?, hak = ? WHERE NIP = ?";
-        $stmt = $this->koneksi->prepare($sql);
-        $stmt->bind_param("ssssss", $nama_user, $tgl_lahir, $alamat, $no_telp, $hak, $NIP);
-        return $stmt->execute();
+        $stmt = $this->koneksi->prepare("
+            UPDATE user 
+            SET
+                nama_user = :nama_user,
+                tgl_lahir = :tgl_lahir,
+                alamat = :alamat,
+                no_telp = :no_telp,
+                hak = :hak
+            WHERE NIP = :nip
+        ");
+
+        return $stmt->execute([
+            ':nama_user' => $nama_user,
+            ':tgl_lahir' => $tgl_lahir,
+            ':alamat' => $alamat,
+            ':no_telp' => $no_telp,
+            ':hak' => $hak,
+            ':nip' => $NIP
+        ]);
     }
 }
 
-// Jika ada data yang dikirimkan melalui form
+// ======================
+// PROSES UPDATE
+// ======================
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+
     $NIP = $_POST['NIP'];
     $nama_user = $_POST['nama_user'];
     $tgl_lahir = $_POST['tgl_lahir'];
@@ -40,16 +79,40 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $hak = $_POST['hak'];
 
     $staff = new Staff($koneksi);
-    if ($staff->updateStaff($NIP, $nama_user, $tgl_lahir, $alamat, $no_telp, $hak)) {
-        header("Location: staff.php"); // Redirect ke halaman daftar staff setelah berhasil edit
+
+    if ($staff->updateStaff(
+        $NIP,
+        $nama_user,
+        $tgl_lahir,
+        $alamat,
+        $no_telp,
+        $hak
+    )) {
+
+        header("Location: staff.php");
+        exit;
+
     } else {
-        echo "Gagal mengupdate data staff.";
+
+        echo "
+        <script>
+            alert('Gagal mengupdate data staff!');
+            window.location.href='staff.php';
+        </script>
+        ";
     }
+
 } else {
-    // Jika tidak ada data POST, ambil data staff berdasarkan NIP dari URL
+
+    // ======================
+    // AMBIL DATA STAFF
+    // ======================
     if (isset($_GET['NIP'])) {
+
         $NIP = $_GET['NIP'];
+
         $staff = new Staff($koneksi);
+
         $staffData = $staff->getStaffByNIP($NIP);
     }
 }
@@ -58,51 +121,155 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Data Staff</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-<div class="container mt-5">
-    <h4 class="text-center">Edit Data Staff</h4>
 
-    <?php if (isset($staffData)): ?>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Edit Data Staff</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="container mt-5">
+
+    <h4 class="text-center">
+        Edit Data Staff
+    </h4>
+
+    <?php if (isset($staffData) && $staffData): ?>
+
     <form action="edit_staff.php" method="POST">
+
+        <!-- NIP -->
         <div class="mb-3">
-            <label for="NIP" class="form-label">NIP</label>
-            <input type="text" class="form-control" name="NIP" value="<?php echo $staffData['NIP']; ?>" readonly>
+
+            <label class="form-label">
+                NIP
+            </label>
+
+            <input type="text"
+                   class="form-control"
+                   name="NIP"
+                   value="<?= htmlspecialchars($staffData['NIP']) ?>"
+                   readonly>
+
         </div>
+
+        <!-- NAMA -->
         <div class="mb-3">
-            <label for="nama_user" class="form-label">Nama</label>
-            <input type="text" class="form-control" name="nama_user" value="<?php echo $staffData['nama_user']; ?>" required>
+
+            <label class="form-label">
+                Nama
+            </label>
+
+            <input type="text"
+                   class="form-control"
+                   name="nama_user"
+                   value="<?= htmlspecialchars($staffData['nama_user']) ?>"
+                   required>
+
         </div>
+
+        <!-- TANGGAL LAHIR -->
         <div class="mb-3">
-            <label for="tgl_lahir" class="form-label">Tanggal Lahir</label>
-            <input type="date" class="form-control" name="tgl_lahir" value="<?php echo $staffData['tgl_lahir']; ?>" required>
+
+            <label class="form-label">
+                Tanggal Lahir
+            </label>
+
+            <input type="date"
+                   class="form-control"
+                   name="tgl_lahir"
+                   value="<?= htmlspecialchars($staffData['tgl_lahir']) ?>"
+                   required>
+
         </div>
+
+        <!-- ALAMAT -->
         <div class="mb-3">
-            <label for="alamat" class="form-label">Alamat</label>
-            <input type="text" class="form-control" name="alamat" value="<?php echo $staffData['alamat']; ?>" required>
+
+            <label class="form-label">
+                Alamat
+            </label>
+
+            <input type="text"
+                   class="form-control"
+                   name="alamat"
+                   value="<?= htmlspecialchars($staffData['alamat']) ?>"
+                   required>
+
         </div>
+
+        <!-- NO TELEPON -->
         <div class="mb-3">
-            <label for="no_telp" class="form-label">No Telepon</label>
-            <input type="text" class="form-control" name="no_telp" value="<?php echo $staffData['no_telp']; ?>" required>
+
+            <label class="form-label">
+                No Telepon
+            </label>
+
+            <input type="text"
+                   class="form-control"
+                   name="no_telp"
+                   value="<?= htmlspecialchars($staffData['no_telp']) ?>"
+                   required>
+
         </div>
+
+        <!-- HAK -->
         <div class="mb-3">
-            <label for="hak" class="form-label">Hak</label>
-            <select class="form-control" name="hak" required>
-                <option value="admin" <?php if ($staffData['hak'] == 'admin') echo 'selected'; ?>>Admin</option>
-                <option value="karyawan" <?php if ($staffData['hak'] == 'karyawan') echo 'selected'; ?>>Karyawan</option>
+
+            <label class="form-label">
+                Hak
+            </label>
+
+            <select class="form-control"
+                    name="hak"
+                    required>
+
+                <option value="admin"
+                    <?= ($staffData['hak'] == 'admin') ? 'selected' : '' ?>>
+
+                    Admin
+
+                </option>
+
+                <option value="karyawan"
+                    <?= ($staffData['hak'] == 'karyawan') ? 'selected' : '' ?>>
+
+                    Karyawan
+
+                </option>
+
             </select>
+
         </div>
-        <button type="submit" class="btn btn-primary">Update</button>
+
+        <!-- BUTTON -->
+        <button type="submit"
+                class="btn btn-primary w-100">
+
+            Update
+
+        </button>
+
     </form>
+
     <?php else: ?>
-        <p>Staff dengan NIP tersebut tidak ditemukan.</p>
+
+        <div class="alert alert-danger mt-4">
+
+            Staff dengan NIP tersebut tidak ditemukan.
+
+        </div>
+
     <?php endif; ?>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 </html>
