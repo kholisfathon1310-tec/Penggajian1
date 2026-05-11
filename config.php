@@ -11,44 +11,27 @@ define('DB_NAME', 'adkcloud_Penggajian1');
 // ======================
 // BASE URL
 // ======================
-define('BASE_URL', 'https://adkcloud.com/penggajian/');
+define('BASE_URL', 'https://adkcloud.my.id/');
 
 // ======================
-// CLASS DATABASE
+// KONEKSI PDO
 // ======================
-class Database {
+try {
 
-    private $host = DB_HOST;
-    private $db_name = DB_NAME;
-    private $username = DB_USER;
-    private $password = DB_PASS;
+    $koneksi = new PDO(
+        "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME,
+        DB_USER,
+        DB_PASS
+    );
 
-    public function getConnection()
-    {
-        try {
+    $koneksi->setAttribute(
+        PDO::ATTR_ERRMODE,
+        PDO::ERRMODE_EXCEPTION
+    );
 
-            $conn = new PDO(
-                "mysql:host={$this->host};dbname={$this->db_name}",
-                $this->username,
-                $this->password
-            );
+} catch (PDOException $e) {
 
-            $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-            return $conn;
-
-        } catch (PDOException $e) {
-
-            die("Koneksi database gagal: " . $e->getMessage());
-        }
-    }
+    die("Connection error: " . $e->getMessage());
 }
-
-// ======================
-// KONEKSI GLOBAL
-// ======================
-$db = new Database();
-
-$koneksi = $db->getConnection();
 
 ?>
