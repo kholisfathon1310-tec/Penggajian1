@@ -1,8 +1,10 @@
 <?php
 session_start();
+
 ob_start();
 
 require_once 'config.php';
+
 require_once "template_admin/header.php";
 require_once "template_admin/sidebar.php";
 require_once "template_admin/navbar.php";
@@ -10,72 +12,94 @@ require_once "template_admin/navbar.php";
 // ======================
 // KONEKSI DATABASE
 // ======================
-$db = new Database();
-$koneksi = $db->getConnection();
+$conn = $koneksi;
 
 // ======================
 // UPDATE STATUS CUTI
 // ======================
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['status'], $_POST['id_cuti'])) {
+if (
+    $_SERVER['REQUEST_METHOD'] === 'POST' &&
+    isset($_POST['status'], $_POST['id_cuti'])
+) {
 
     $status = $_POST['status'];
+
     $id_cuti = $_POST['id_cuti'];
 
     try {
 
-        $stmt = $koneksi->prepare("
-            UPDATE admin_pengajuan_cuti 
-            SET status = :status 
+        $stmt = $conn->prepare("
+            UPDATE admin_pengajuan_cuti
+            SET status = :status
             WHERE id_cuti = :id
         ");
 
         $result = $stmt->execute([
+
             ':status' => $status,
+
             ':id' => $id_cuti
         ]);
 
         if ($result) {
 
-            $_SESSION['notif'] = "Status pengajuan cuti berhasil diperbarui menjadi '$status'.";
+            $_SESSION['notif'] =
+                "Status pengajuan cuti berhasil diperbarui menjadi '$status'.";
 
             header("Location: admin_pengajuan_cuti.php");
+
             exit;
         }
 
     } catch (Exception $e) {
 
-        echo "<p class='alert alert-danger'>
-                Terjadi kesalahan: " . htmlspecialchars($e->getMessage()) . "
-              </p>";
+        echo "
+        <p class='alert alert-danger'>
+
+            Terjadi kesalahan:
+            " . htmlspecialchars($e->getMessage()) . "
+
+        </p>
+        ";
     }
 }
 
 // ======================
 // AMBIL DATA CUTI
 // ======================
-$stmt = $koneksi->prepare("
-    SELECT * FROM admin_pengajuan_cuti
+$stmt = $conn->prepare("
+    SELECT *
+    FROM admin_pengajuan_cuti
     ORDER BY id_cuti DESC
 ");
 
 $stmt->execute();
 
-$result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$result =
+    $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Daftar Pengajuan Cuti Karyawan</title>
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+<title>
+    Daftar Pengajuan Cuti Karyawan
+</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css"
+      rel="stylesheet">
 
 <style>
+
 body {
-    font-family: 'Arial', sans-serif;
+    font-family: Arial, sans-serif;
     margin-top: 0;
     background-color: #f8f9fa;
 }
@@ -115,7 +139,9 @@ body {
 .table-responsive {
     overflow-x: auto;
 }
+
 </style>
+
 </head>
 
 <body>
@@ -123,7 +149,9 @@ body {
 <div class="content">
 
     <h2 class="text-center">
+
         Daftar Pengajuan Cuti Karyawan
+
     </h2>
 
     <!-- NOTIFIKASI -->
@@ -149,13 +177,15 @@ body {
 
         <table class="table table-bordered table-striped table-hover">
 
-            <thead style="background-color:rgb(60, 100, 139); color:white;">
+            <thead style="background-color:rgb(60,100,139);color:white;">
 
                 <tr>
+
                     <th>ID Cuti</th>
                     <th>Nama</th>
                     <th>Status</th>
                     <th>Detail</th>
+
                 </tr>
 
             </thead>
@@ -169,11 +199,15 @@ body {
                     <tr>
 
                         <td>
+
                             <?= htmlspecialchars($row['id_cuti']); ?>
+
                         </td>
 
                         <td>
+
                             <?= htmlspecialchars($row['nama']); ?>
+
                         </td>
 
                         <td>
@@ -181,13 +215,17 @@ body {
                             <?php if ($row['status'] == 'Disetujui'): ?>
 
                                 <span class="badge bg-success">
+
                                     Disetujui
+
                                 </span>
 
                             <?php elseif ($row['status'] == 'Ditolak'): ?>
 
                                 <span class="badge bg-danger">
+
                                     Ditolak
+
                                 </span>
 
                             <?php else: ?>
@@ -241,8 +279,11 @@ body {
 
                 <tr>
 
-                    <td colspan="4" class="text-center">
+                    <td colspan="4"
+                        class="text-center">
+
                         Tidak ada data pengajuan cuti.
+
                     </td>
 
                 </tr>
