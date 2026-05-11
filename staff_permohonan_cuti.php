@@ -1,47 +1,160 @@
 <?php
 session_start();
-require_once "config.php"; // Pastikan file ini benar
 
+require_once "config.php";
+
+// ======================
+// CEK METHOD
+// ======================
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    // Ambil data dari form
-    $nip = mysqli_real_escape_string($koneksi, $_POST['NIP']);
-    $nama = mysqli_real_escape_string($koneksi, $_POST['nama']);
-    $tanggal_mulai = mysqli_real_escape_string($koneksi, $_POST['tanggal_mulai']);
-    $tanggal_selesai = mysqli_real_escape_string($koneksi, $_POST['tanggal_selesai']);
-    $jenis_cuti = mysqli_real_escape_string($koneksi, $_POST['jenis_cuti']);
-    $status = mysqli_real_escape_string($koneksi, $_POST['status']);
-    $tanggal_pengajuan = date("Y-m-d"); // Tanggal saat ini untuk pengajuan cuti
 
-    // Generate id_cuti otomatis
-    $result = mysqli_query($koneksi, "SELECT id_cuti FROM admin_pengajuan_cuti ORDER BY id_cuti DESC LIMIT 1");
-    $lastId = mysqli_fetch_assoc($result)['id_cuti'];
+    // ======================
+    // AMBIL DATA FORM
+    // ======================
+    $nip = trim($_POST['NIP']);
+    $nama = trim($_POST['nama']);
 
-    if ($lastId) {
-        // Ambil angka terakhir dan tambahkan 1
-        $number = (int) substr($lastId, 2) + 1;
-        $id_cuti = 'CT' . str_pad($number, 3, '0', STR_PAD_LEFT);
-    } else {
-        // Jika belum ada data, mulai dari CT001
-        $id_cuti = 'CT001';
-    }
+    $tanggal_mulai =
+        trim($_POST['tanggal_mulai']);
 
-    // Query untuk menyimpan data ke tabel admin_pengajuan_cuti
-    $sql = "INSERT INTO admin_pengajuan_cuti (id_cuti, NIP, nama, tanggal_pengajuan, tanggal_awal, tanggal_akhir, jenis_cuti, konfirmasi_permohonan) 
-            VALUES ('$id_cuti', '$nip', '$nama', '$tanggal_pengajuan', '$tanggal_mulai', '$tanggal_selesai', '$jenis_cuti', '$konfirmasi_permohonan')";
+    $tanggal_selesai =
+        trim($_POST['tanggal_selesai']);
 
-    if (mysqli_query($koneksi, $sql)) {
-        // Redirect kembali ke halaman utama dengan pesan sukses
-        $_SESSION['message'] = "Data permohonan cuti berhasil ditambahkan.";
+    $jenis_cuti =
+        trim($_POST['jenis_cuti']);
+
+    $status =
+        trim($_POST['status']);
+
+    // ======================
+    // TANGGAL PENGAJUAN
+    // ======================
+    $tanggal_pengajuan =
+        date("Y-m-d");
+
+    try {
+
+        // ======================
+        // AMBIL ID CUTI TERAKHIR
+        // ======================
+        $stmt = $koneksi->prepare("
+            SELECT id_cuti
+            FROM admin_pengajuan_cuti
+            ORDER BY id_cuti DESC
+            LIMIT 1
+        ");
+
+        $stmt->execute();
+
+        $lastData =
+            $stmt->fetch(PDO::FETCH_ASSOC);
+
+        // ======================
+        // GENERATE ID CUTI
+        // ======================
+        if ($lastData) {
+
+            $lastId = $lastData['id_cuti'];
+
+            $number =
+                (int) substr($lastId, 2) + 1;
+
+            $id_cuti =
+                'CT' .
+                str_pad($number, 3, '0', STR_PAD_LEFT);
+
+        } else {
+
+            $id_cuti = 'CT001';
+        }
+
+        // ======================
+        // INSERT DATA CUTI
+        // ======================
+        $stmt = $koneksi->prepare("
+            INSERT INTO admin_pengajuan_cuti (
+                id_cuti,
+                NIP,
+                nama,
+                tanggal_pengajuan,
+                tanggal_awal,
+                tanggal_akhir,
+                jenis_cuti,
+                status
+            )
+            VALUES (
+                :id_cuti,
+                :nip,
+                :nama,
+                :tanggal_pengajuan,
+                :tanggal_awal,
+                :tanggal_akhir,
+                :jenis_cuti,
+                :status
+            )
+        ");
+
+        $result = $stmt->execute([
+
+            ':id_cuti' => $id_cuti,
+            ':nip' => $nip,
+            ':nama' => $nama,
+            ':tanggal_pengajuan' => $tanggal_pengajuan,
+            ':tanggal_awal' => $tanggal_mulai,
+            ':tanggal_akhir' => $tanggal_selesai,
+            ':jenis_cuti' => $jenis_cuti,
+            ':status' => $status
+        ]);
+
+        // ======================
+        // BERHASIL
+        // ======================
+        if ($result) {
+
+            $_SESSION['message'] =
+                "Data permohonan cuti berhasil ditambahkan.";
+
+            $_SESSION['message_type'] =
+                "success";
+
+            header("Location: staff_permohonan_cuti.php");
+
+            exit();
+
+        } else {
+
+            $_SESSION['message'] =
+                "Gagal menambahkan data cuti.";
+
+            $_SESSION['message_type'] =
+                "danger";
+
+            header("Location: staff_permohonan_cuti.php");
+
+            exit();
+        }
+
+    } catch (PDOException $e) {
+
+        $_SESSION['message'] =
+            "Terjadi kesalahan database: " .
+            $e->getMessage();
+
+        $_SESSION['message_type'] =
+            "danger";
+
         header("Location: staff_permohonan_cuti.php");
-        exit();
-    } else {
-        // Jika ada error saat menyimpan
-        $_SESSION['error'] = "Gagal menambahkan data: " . mysqli_error($koneksi);
-        header("Location: admin_permohonan_cuti.php");
+
         exit();
     }
+
 } else {
+
+    // ======================
+    // AKSES TIDAK VALID
+    // ======================
     header("Location: staff_form_cuti.php");
     exit();
 }
+
 ?>
