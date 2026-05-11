@@ -2,6 +2,7 @@
 session_start();
 
 require_once 'config.php';
+
 require_once "template_admin/header.php";
 require_once "template_admin/sidebar.php";
 require_once "template_admin/navbar.php";
@@ -9,8 +10,7 @@ require_once "template_admin/navbar.php";
 // ======================
 // KONEKSI DATABASE
 // ======================
-$db = new Database();
-$conn = $db->getConnection();
+$conn = $koneksi;
 
 // ======================
 // SIMPAN DATA
@@ -18,76 +18,137 @@ $conn = $db->getConnection();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $NIP = $_POST['NIP'];
-    $nama_karyawan = $_POST['nama_karyawan'];
-    $posisi = $_POST['posisi'];
+
+    $nama_user = $_POST['nama_user'];
+
+    $hak = $_POST['hak'];
+
     $periode = $_POST['periode'];
+
     $tanggal_gaji = $_POST['tanggal_gaji'];
+
+    $base_salary = $_POST['base_salary'];
+
     $pot_BPJS = $_POST['pot_BPJS'];
+
     $transportasi = $_POST['transportasi'];
 
-    $opsi_lembur = $_POST['opsi_lembur'];
+    $pot_absen = $_POST['pot_absen'];
 
-    $lembur = $_POST['lembur'] ?? 0;
-    $gaji_lembur_per_jam = $_POST['gaji_lembur_per_jam'] ?? 0;
+    $lembur = $_POST['lembur'];
+
+    // ======================
+    // HITUNG LEMBUR
+    // ======================
+    $gajiLembur =
+        ($lembur === 'Iya')
+        ? 50000
+        : 0;
 
     // ======================
     // HITUNG TOTAL
     // ======================
-    $gaji_lembur = $lembur * $gaji_lembur_per_jam;
-
-    $total = $transportasi
-            - $pot_BPJS
-            + $gaji_lembur;
+    $salary =
+        $base_salary
+        - $pot_BPJS
+        - $pot_absen
+        + $transportasi
+        + $gajiLembur;
 
     // ======================
-    // INSERT
+    // INSERT / UPDATE
     // ======================
-    $stmt = $conn->prepare("
-        INSERT INTO admin_penggajian (
-            NIP,
-            nama_karyawan,
-            posisi,
-            periode,
-            tanggal_gaji,
-            pot_BPJS,
-            transportasi,
-            opsi_lembur,
-            lembur,
-            gaji_lembur_per_jam,
-            total
-        )
-        VALUES (
-            :nip,
-            :nama,
-            :posisi,
-            :periode,
-            :tanggal,
-            :bpjs,
-            :transportasi,
-            :opsi_lembur,
-            :lembur,
-            :gaji_lembur,
-            :total
-        )
+    $cek = $conn->prepare("
+        SELECT COUNT(*)
+        FROM admin_penggajian
+        WHERE NIP = :nip
     ");
 
+    $cek->execute([
+        ':nip' => $NIP
+    ]);
+
+    $exists = $cek->fetchColumn();
+
+    if ($exists > 0) {
+
+        $stmt = $conn->prepare("
+            UPDATE admin_penggajian
+            SET
+                nama_user = :nama_user,
+                hak = :hak,
+                periode = :periode,
+                tanggal_gaji = :tanggal_gaji,
+                base_salary = :base_salary,
+                pot_BPJS = :pot_BPJS,
+                transportasi = :transportasi,
+                pot_absen = :pot_absen,
+                lembur = :lembur,
+                salary = :salary
+            WHERE NIP = :nip
+        ");
+
+    } else {
+
+        $stmt = $conn->prepare("
+            INSERT INTO admin_penggajian (
+                NIP,
+                nama_user,
+                hak,
+                periode,
+                tanggal_gaji,
+                base_salary,
+                pot_BPJS,
+                transportasi,
+                pot_absen,
+                lembur,
+                salary
+            )
+            VALUES (
+                :nip,
+                :nama_user,
+                :hak,
+                :periode,
+                :tanggal_gaji,
+                :base_salary,
+                :pot_BPJS,
+                :transportasi,
+                :pot_absen,
+                :lembur,
+                :salary
+            )
+        ");
+    }
+
     $result = $stmt->execute([
+
         ':nip' => $NIP,
-        ':nama' => $nama_karyawan,
-        ':posisi' => $posisi,
+
+        ':nama_user' => $nama_user,
+
+        ':hak' => $hak,
+
         ':periode' => $periode,
-        ':tanggal' => $tanggal_gaji,
-        ':bpjs' => $pot_BPJS,
+
+        ':tanggal_gaji' => $tanggal_gaji,
+
+        ':base_salary' => $base_salary,
+
+        ':pot_BPJS' => $pot_BPJS,
+
         ':transportasi' => $transportasi,
-        ':opsi_lembur' => $opsi_lembur,
+
+        ':pot_absen' => $pot_absen,
+
         ':lembur' => $lembur,
-        ':gaji_lembur' => $gaji_lembur_per_jam,
-        ':total' => $total
+
+        ':salary' => $salary
     ]);
 
     if ($result) {
 
         header("Location: admin_gaji.php?success=1");
+
         exit;
 
     } else {
@@ -100,6 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // AMBIL DATA USER
 // ======================
 $name = '';
+
 $position = '';
 
 if (isset($_GET['NIP'])) {
@@ -107,7 +169,9 @@ if (isset($_GET['NIP'])) {
     $NIP = $_GET['NIP'];
 
     $stmt = $conn->prepare("
-        SELECT nama_user, hak
+        SELECT
+            nama_user,
+            hak
         FROM user
         WHERE NIP = :nip
     ");
@@ -116,12 +180,16 @@ if (isset($_GET['NIP'])) {
         ':nip' => $NIP
     ]);
 
-    $employee = $stmt->fetch(PDO::FETCH_ASSOC);
+    $employee =
+        $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($employee) {
 
-        $name = $employee['nama_user'];
-        $position = $employee['hak'];
+        $name =
+            $employee['nama_user'];
+
+        $position =
+            $employee['hak'];
     }
 }
 
@@ -129,25 +197,34 @@ if (isset($_GET['NIP'])) {
 // AMBIL SEMUA NIP
 // ======================
 $stmt = $conn->prepare("
-    SELECT NIP
+    SELECT
+        NIP
     FROM user
 ");
 
 $stmt->execute();
 
-$nips = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$nips =
+    $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Input Gaji Karyawan</title>
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>
+    Input Gaji Karyawan
+</title>
 
 <link rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+
 </head>
 
 <body>
@@ -155,24 +232,31 @@ $nips = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <div class="container mt-5">
 
     <h2 class="text-center">
+
         Input Gaji Karyawan
+
     </h2>
 
     <?php if (isset($error)): ?>
 
         <div class="alert alert-danger">
+
             <?= htmlspecialchars($error) ?>
+
         </div>
 
     <?php endif; ?>
 
-    <form action="admin_input_gaji.php" method="POST">
+    <form action="admin_input_gaji.php"
+          method="POST">
 
         <!-- NIP -->
         <div class="mb-3">
 
             <label class="form-label">
+
                 NIP
+
             </label>
 
             <select class="form-control"
@@ -186,8 +270,7 @@ $nips = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 <?php foreach ($nips as $nip): ?>
 
-                    <option value="<?= $nip['NIP']; ?>"
-                        <?= (isset($NIP) && $NIP == $nip['NIP']) ? 'selected' : ''; ?>>
+                    <option value="<?= $nip['NIP']; ?>">
 
                         <?= $nip['NIP']; ?>
 
@@ -203,13 +286,15 @@ $nips = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <div class="mb-3">
 
             <label class="form-label">
+
                 Nama Karyawan
+
             </label>
 
             <input type="text"
                    class="form-control"
-                   id="nama_karyawan"
-                   name="nama_karyawan"
+                   id="nama_user"
+                   name="nama_user"
                    value="<?= htmlspecialchars($name) ?>"
                    readonly>
 
@@ -219,13 +304,15 @@ $nips = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <div class="mb-3">
 
             <label class="form-label">
+
                 Posisi
+
             </label>
 
             <input type="text"
                    class="form-control"
-                   id="posisi"
-                   name="posisi"
+                   id="hak"
+                   name="hak"
                    value="<?= htmlspecialchars($position) ?>"
                    readonly>
 
@@ -235,7 +322,9 @@ $nips = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <div class="mb-3">
 
             <label class="form-label">
+
                 Periode
+
             </label>
 
             <select class="form-control"
@@ -271,7 +360,9 @@ $nips = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <div class="mb-3">
 
             <label class="form-label">
+
                 Tanggal Gaji
+
             </label>
 
             <input type="date"
@@ -282,11 +373,30 @@ $nips = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         </div>
 
+        <!-- GAJI POKOK -->
+        <div class="mb-3">
+
+            <label class="form-label">
+
+                Gaji Pokok
+
+            </label>
+
+            <input type="number"
+                   class="form-control"
+                   id="base_salary"
+                   name="base_salary"
+                   required>
+
+        </div>
+
         <!-- BPJS -->
         <div class="mb-3">
 
             <label class="form-label">
+
                 Potongan BPJS
+
             </label>
 
             <input type="number"
@@ -301,7 +411,9 @@ $nips = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <div class="mb-3">
 
             <label class="form-label">
+
                 Transportasi
+
             </label>
 
             <input type="number"
@@ -312,66 +424,46 @@ $nips = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         </div>
 
-        <!-- OPSI LEMBUR -->
+        <!-- POTONGAN ABSEN -->
         <div class="mb-3">
 
             <label class="form-label">
-                Opsi Lembur
+
+                Potongan Absen
+
             </label>
 
-            <select class="form-control"
-                    id="opsi_lembur"
-                    name="opsi_lembur"
-                    required>
-
-                <option value="ya">
-                    Ya
-                </option>
-
-                <option value="tidak">
-                    Tidak
-                </option>
-
-            </select>
+            <input type="number"
+                   class="form-control"
+                   id="pot_absen"
+                   name="pot_absen"
+                   value="0">
 
         </div>
 
         <!-- LEMBUR -->
-        <div id="lembur_section"
-             style="display:none;">
+        <div class="mb-3">
 
-            <div class="mb-3">
+            <label class="form-label">
 
-                <label class="form-label">
-                    Jumlah Jam Lembur
-                </label>
+                Lembur
 
-                <input type="number"
-                       class="form-control"
-                       id="lembur"
-                       name="lembur">
+            </label>
 
-            </div>
+            <select class="form-control"
+                    id="lembur"
+                    name="lembur"
+                    required>
 
-        </div>
+                <option value="Tidak">
+                    Tidak
+                </option>
 
-        <!-- GAJI LEMBUR -->
-        <div id="gaji_lembur_section"
-             style="display:none;">
+                <option value="Iya">
+                    Iya
+                </option>
 
-            <div class="mb-3">
-
-                <label class="form-label">
-                    Gaji Lembur per Jam
-                </label>
-
-                <input type="number"
-                       class="form-control"
-                       id="gaji_lembur_per_jam"
-                       name="gaji_lembur_per_jam"
-                       value="50000">
-
-            </div>
+            </select>
 
         </div>
 
@@ -379,13 +471,15 @@ $nips = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <div class="mb-3">
 
             <label class="form-label">
+
                 Total Gaji
+
             </label>
 
             <input type="number"
                    class="form-control"
-                   id="total"
-                   name="total"
+                   id="salary"
+                   name="salary"
                    readonly
                    value="0">
 
@@ -413,28 +507,80 @@ $nips = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 </div>
 
-<!-- SCRIPT -->
 <script>
 
-document.getElementById('opsi_lembur')
-.addEventListener('change', function() {
+document.addEventListener("DOMContentLoaded", function () {
 
-    const lemburSection =
-        document.getElementById('lembur_section');
+    const nipSelect =
+        document.getElementById('NIP');
 
-    const gajiSection =
-        document.getElementById('gaji_lembur_section');
+    const namaInput =
+        document.getElementById('nama_user');
 
-    if (this.value === 'ya') {
+    const hakInput =
+        document.getElementById('hak');
 
-        lemburSection.style.display = 'block';
-        gajiSection.style.display = 'block';
+    const employeeData =
+        <?= json_encode($nips); ?>;
 
-    } else {
+    // ======================
+    // AUTO HITUNG TOTAL
+    // ======================
+    function calculateTotal() {
 
-        lemburSection.style.display = 'none';
-        gajiSection.style.display = 'none';
+        const baseSalary =
+            parseFloat(
+                document.getElementById('base_salary').value
+            ) || 0;
+
+        const bpjs =
+            parseFloat(
+                document.getElementById('pot_BPJS').value
+            ) || 0;
+
+        const transport =
+            parseFloat(
+                document.getElementById('transportasi').value
+            ) || 0;
+
+        const potAbsen =
+            parseFloat(
+                document.getElementById('pot_absen').value
+            ) || 0;
+
+        const lembur =
+            document.getElementById('lembur').value;
+
+        const lemburRate =
+            (lembur === 'Iya')
+            ? 50000
+            : 0;
+
+        const total =
+            baseSalary
+            - bpjs
+            - potAbsen
+            + transport
+            + lemburRate;
+
+        document.getElementById('salary').value =
+            total;
     }
+
+    document.getElementById('base_salary')
+        .addEventListener('input', calculateTotal);
+
+    document.getElementById('pot_BPJS')
+        .addEventListener('input', calculateTotal);
+
+    document.getElementById('transportasi')
+        .addEventListener('input', calculateTotal);
+
+    document.getElementById('pot_absen')
+        .addEventListener('input', calculateTotal);
+
+    document.getElementById('lembur')
+        .addEventListener('change', calculateTotal);
 });
 
 </script>
