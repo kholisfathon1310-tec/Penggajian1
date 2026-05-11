@@ -1,33 +1,80 @@
 <?php
 session_start();
-require_once 'config.php'; // Pastikan ini sudah berisi koneksi database
 
-// Cek apakah ada NIP yang dikirim melalui POST
+require_once 'config.php';
+
+// ======================
+// CEK NIP
+// ======================
 if (isset($_POST['NIP'])) {
-    $NIP = $_POST['NIP'];
-    
-    // Query untuk menghapus staff berdasarkan NIP
-    $sql = "DELETE FROM user WHERE NIP = ?";
-    $stmt = $koneksi->prepare($sql);
-    $stmt->bind_param("s", $NIP);
-    
-    if ($stmt->execute()) {
-        // Simpan pesan sukses di sesi
-        $_SESSION['message'] = "Data staff berhasil dihapus.";
-        $_SESSION['message_type'] = "success"; // Tipe pesan sukses
-    } else {
-        // Simpan pesan gagal di sesi
-        $_SESSION['message'] = "Gagal menghapus data staff.";
-        $_SESSION['message_type'] = "danger"; // Tipe pesan error
+
+    $NIP = trim($_POST['NIP']);
+
+    try {
+
+        // ======================
+        // QUERY HAPUS STAFF
+        // ======================
+        $stmt = $koneksi->prepare("
+            DELETE FROM user
+            WHERE NIP = :nip
+        ");
+
+        $result = $stmt->execute([
+            ':nip' => $NIP
+        ]);
+
+        // ======================
+        // BERHASIL
+        // ======================
+        if ($result) {
+
+            $_SESSION['message'] =
+                "Data staff berhasil dihapus.";
+
+            $_SESSION['message_type'] =
+                "success";
+
+        } else {
+
+            // ======================
+            // GAGAL
+            // ======================
+            $_SESSION['message'] =
+                "Gagal menghapus data staff.";
+
+            $_SESSION['message_type'] =
+                "danger";
+        }
+
+    } catch (PDOException $e) {
+
+        // ======================
+        // ERROR DATABASE
+        // ======================
+        $_SESSION['message'] =
+            "Terjadi kesalahan database: " . $e->getMessage();
+
+        $_SESSION['message_type'] =
+            "danger";
     }
 
-    // Redirect ke halaman staff setelah operasi selesai
-    header("Location: staff.php");
-    exit; // Pastikan script berhenti setelah redirect
 } else {
-    // Jika NIP tidak ditemukan
-    $_SESSION['message'] = "Data staff tidak ditemukan.";
-    $_SESSION['message_type'] = "danger";
-    header("Location: staff.php");
-    exit;
+
+    // ======================
+    // NIP TIDAK ADA
+    // ======================
+    $_SESSION['message'] =
+        "Data staff tidak ditemukan.";
+
+    $_SESSION['message_type'] =
+        "danger";
 }
+
+// ======================
+// REDIRECT
+// ======================
+header("Location: staff.php");
+exit;
+
+?>
