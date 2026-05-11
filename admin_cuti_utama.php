@@ -99,45 +99,80 @@ $result =
 <style>
 
 body {
-    font-family: Arial, sans-serif;
-    margin-top: 0;
-    background-color: #f8f9fa;
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #f4f6f9;
 }
 
 .content {
-    padding: 20px;
+    padding: 25px;
     padding-top: 90px;
 }
 
+/* Judul */
+h2 {
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 25px;
+}
+
+/* Card tabel */
+.table-responsive {
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+/* Header tabel */
 .table th {
-    background-color: #343a40;
+    background-color: #0d6efd !important;
+    color: white;
+    text-align: center;
+    vertical-align: middle;
+}
+
+/* Isi tabel */
+.table td {
+    background-color: white;
+    color: #333;
+    vertical-align: middle;
+    text-align: center;
+}
+
+/* Hover tabel */
+.table-hover tbody tr:hover {
+    background-color: #f1f7ff;
+    transition: 0.2s;
+}
+
+/* Tombol */
+.btn {
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 14px;
+}
+
+/* Tombol detail */
+.btn-info {
     color: white;
 }
 
-.table td {
-    background-color: #ffffff;
-    color: #212529;
+/* Alert */
+.alert {
+    border-radius: 12px;
 }
 
-.btn-primary {
-    border-radius: 25px;
-    font-size: 14px;
+/* Badge */
+.badge {
+    padding: 8px 12px;
+    font-size: 13px;
+    border-radius: 8px;
 }
 
-.search-box {
-    max-width: 250px;
-}
-
+/* Modal */
 .modal-content {
-    border-radius: 10px;
-}
-
-.navbar {
-    padding: 10px 20px;
-}
-
-.table-responsive {
-    overflow-x: auto;
+    border-radius: 15px;
 }
 
 </style>
@@ -177,7 +212,7 @@ body {
 
         <table class="table table-bordered table-striped table-hover">
 
-            <thead style="background-color:rgb(60,100,139);color:white;">
+            <thead>
 
                 <tr>
 
