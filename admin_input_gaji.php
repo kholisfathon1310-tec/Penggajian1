@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-require_once 'Database.php';
+require_once 'config.php';
 require_once "template_admin/header.php";
 require_once "template_admin/sidebar.php";
 require_once "template_admin/navbar.php";
