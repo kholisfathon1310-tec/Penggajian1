@@ -4,58 +4,21 @@ session_start();
 require_once "config.php";
 
 // ======================
-// CLASS USER
+// CLASS STAFF
 // ======================
-class User
+class Staff
 {
     private $koneksi;
 
-    private $nip;
-    private $nama;
-    private $tglLahir;
-    private $noTelp;
-    private $alamat;
-
-    // ======================
-    // CONSTRUCTOR
-    // ======================
     public function __construct($koneksi)
     {
         $this->koneksi = $koneksi;
     }
 
     // ======================
-    // SETTER
+    // GET DATA STAFF
     // ======================
-    public function setNIP($nip)
-    {
-        $this->nip = $nip;
-    }
-
-    public function setNama($nama)
-    {
-        $this->nama = $nama;
-    }
-
-    public function setTglLahir($tglLahir)
-    {
-        $this->tglLahir = $tglLahir;
-    }
-
-    public function setNoTelp($noTelp)
-    {
-        $this->noTelp = $noTelp;
-    }
-
-    public function setAlamat($alamat)
-    {
-        $this->alamat = $alamat;
-    }
-
-    // ======================
-    // GET DATA USER
-    // ======================
-    public function getUserData($nip)
+    public function getStaffByNIP($NIP)
     {
         $stmt = $this->koneksi->prepare("
             SELECT *
@@ -64,141 +27,112 @@ class User
         ");
 
         $stmt->execute([
-            ':nip' => $nip
+            ':nip' => $NIP
         ]);
 
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     // ======================
-    // UPDATE PROFILE
+    // UPDATE STAFF
     // ======================
-    public function updateProfile()
-    {
+    public function updateStaff(
+        $NIP,
+        $nama_user,
+        $tgl_lahir,
+        $alamat,
+        $no_telp,
+        $hak
+    ) {
+
         $stmt = $this->koneksi->prepare("
             UPDATE user
             SET
                 nama_user = :nama_user,
                 tgl_lahir = :tgl_lahir,
+                alamat = :alamat,
                 no_telp = :no_telp,
-                alamat = :alamat
+                hak = :hak
             WHERE NIP = :nip
         ");
 
         return $stmt->execute([
 
-            ':nama_user' => $this->nama,
-            ':tgl_lahir' => $this->tglLahir,
-            ':no_telp' => $this->noTelp,
-            ':alamat' => $this->alamat,
-            ':nip' => $this->nip
+            ':nama_user' => $nama_user,
+
+            ':tgl_lahir' => $tgl_lahir,
+
+            ':alamat' => $alamat,
+
+            ':no_telp' => $no_telp,
+
+            ':hak' => $hak,
+
+            ':nip' => $NIP
         ]);
     }
 }
 
 // ======================
-// CLASS VALIDATOR
+// OBJECT STAFF
 // ======================
-class Validator
-{
-    public static function sanitizeInput($data)
-    {
-        return htmlspecialchars(
-            stripslashes(trim($data))
-        );
-    }
-
-    public static function validateDate($date)
-    {
-        $format = 'Y-m-d';
-
-        $d = DateTime::createFromFormat(
-            $format,
-            $date
-        );
-
-        return $d && $d->format($format) === $date;
-    }
-}
-
-// ======================
-// CEK LOGIN
-// ======================
-if (!isset($_SESSION['NIP'])) {
-
-    header("Location: form_login.php");
-
-    exit();
-}
-
-// ======================
-// AMBIL NIP SESSION
-// ======================
-$nip = $_SESSION['NIP'];
-
-// ======================
-// OBJECT USER
-// ======================
-$user = new User($koneksi);
-
-// ======================
-// AMBIL DATA USER
-// ======================
-$userData = $user->getUserData($nip);
+$staff = new Staff($koneksi);
 
 // ======================
 // PROSES UPDATE
 // ======================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $user->setNIP($nip);
+    $NIP = $_POST['NIP'];
 
-    $user->setNama(
-        Validator::sanitizeInput(
-            $_POST['nama_user']
+    $nama_user = $_POST['nama_user'];
+
+    $tgl_lahir = $_POST['tgl_lahir'];
+
+    $alamat = $_POST['alamat'];
+
+    $no_telp = $_POST['no_telp'];
+
+    $hak = $_POST['hak'];
+
+    if (
+        $staff->updateStaff(
+            $NIP,
+            $nama_user,
+            $tgl_lahir,
+            $alamat,
+            $no_telp,
+            $hak
         )
-    );
-
-    $user->setTglLahir(
-        Validator::sanitizeInput(
-            $_POST['tgl_lahir']
-        )
-    );
-
-    $user->setNoTelp(
-        Validator::sanitizeInput(
-            $_POST['no_telp']
-        )
-    );
-
-    $user->setAlamat(
-        Validator::sanitizeInput(
-            $_POST['alamat']
-        )
-    );
-
-    // ======================
-    // UPDATE DATA
-    // ======================
-    if ($user->updateProfile()) {
+    ) {
 
         $_SESSION['message'] =
-            "Profil berhasil diperbarui!";
+            "Data staff berhasil diperbarui.";
 
         $_SESSION['message_type'] =
             "success";
 
-        header("Location: profile.php");
+        header("Location: staff.php");
 
         exit();
 
     } else {
 
-        $_SESSION['message'] =
-            "Gagal memperbarui profil!";
+        $error =
+            "Gagal mengupdate data staff.";
+    }
 
-        $_SESSION['message_type'] =
-            "danger";
+} else {
+
+    // ======================
+    // AMBIL DATA STAFF
+    // ======================
+    if (isset($_GET['NIP'])) {
+
+        $NIP = $_GET['NIP'];
+
+        $staffData =
+            $staff->getStaffByNIP($NIP);
     }
 }
 ?>
@@ -212,10 +146,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta name="viewport"
       content="width=device-width, initial-scale=1.0">
 
-<title>Detail Profil</title>
+<title>
+    Edit Data Staff
+</title>
 
-<link rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet">
 
 <style>
 
@@ -244,41 +180,40 @@ body {
 
         <div class="card-header bg-dark text-white">
 
-            Detail Profil
+            Edit Data Staff
 
         </div>
 
         <div class="card-body">
 
-            <!-- ALERT -->
-            <?php if (isset($_SESSION['message'])): ?>
+            <?php if (isset($error)): ?>
 
-                <div class="alert alert-<?= $_SESSION['message_type']; ?>">
+                <div class="alert alert-danger">
 
-                    <?= $_SESSION['message']; ?>
+                    <?= htmlspecialchars($error); ?>
 
                 </div>
 
-                <?php
-                unset($_SESSION['message']);
-                unset($_SESSION['message_type']);
-                ?>
-
             <?php endif; ?>
 
-            <!-- FORM -->
-            <form method="POST" action="">
+            <?php if (isset($staffData)): ?>
+
+            <form action=""
+                  method="POST">
 
                 <!-- NIP -->
                 <div class="mb-3">
 
                     <label class="form-label">
+
                         NIP
+
                     </label>
 
                     <input type="text"
                            class="form-control"
-                           value="<?= htmlspecialchars($userData['NIP']); ?>"
+                           name="NIP"
+                           value="<?= htmlspecialchars($staffData['NIP']); ?>"
                            readonly>
 
                 </div>
@@ -287,13 +222,15 @@ body {
                 <div class="mb-3">
 
                     <label class="form-label">
+
                         Nama
+
                     </label>
 
                     <input type="text"
-                           name="nama_user"
                            class="form-control"
-                           value="<?= htmlspecialchars($userData['nama_user']); ?>"
+                           name="nama_user"
+                           value="<?= htmlspecialchars($staffData['nama_user']); ?>"
                            required>
 
                 </div>
@@ -302,28 +239,15 @@ body {
                 <div class="mb-3">
 
                     <label class="form-label">
+
                         Tanggal Lahir
+
                     </label>
 
                     <input type="date"
+                           class="form-control"
                            name="tgl_lahir"
-                           class="form-control"
-                           value="<?= htmlspecialchars($userData['tgl_lahir']); ?>"
-                           required>
-
-                </div>
-
-                <!-- TELEPON -->
-                <div class="mb-3">
-
-                    <label class="form-label">
-                        No Telepon
-                    </label>
-
-                    <input type="text"
-                           name="no_telp"
-                           class="form-control"
-                           value="<?= htmlspecialchars($userData['no_telp']); ?>"
+                           value="<?= htmlspecialchars($staffData['tgl_lahir']); ?>"
                            required>
 
                 </div>
@@ -332,14 +256,64 @@ body {
                 <div class="mb-3">
 
                     <label class="form-label">
+
                         Alamat
+
                     </label>
 
                     <input type="text"
-                           name="alamat"
                            class="form-control"
-                           value="<?= htmlspecialchars($userData['alamat']); ?>"
+                           name="alamat"
+                           value="<?= htmlspecialchars($staffData['alamat']); ?>"
                            required>
+
+                </div>
+
+                <!-- TELEPON -->
+                <div class="mb-3">
+
+                    <label class="form-label">
+
+                        No Telepon
+
+                    </label>
+
+                    <input type="text"
+                           class="form-control"
+                           name="no_telp"
+                           value="<?= htmlspecialchars($staffData['no_telp']); ?>"
+                           required>
+
+                </div>
+
+                <!-- HAK -->
+                <div class="mb-3">
+
+                    <label class="form-label">
+
+                        Hak Akses
+
+                    </label>
+
+                    <select class="form-control"
+                            name="hak"
+                            required>
+
+                        <option value="admin"
+                            <?= ($staffData['hak'] == 'admin') ? 'selected' : ''; ?>>
+
+                            Admin
+
+                        </option>
+
+                        <option value="karyawan"
+                            <?= ($staffData['hak'] == 'karyawan') ? 'selected' : ''; ?>>
+
+                            Karyawan
+
+                        </option>
+
+                    </select>
 
                 </div>
 
@@ -347,11 +321,28 @@ body {
                 <button type="submit"
                         class="btn btn-primary">
 
-                    Simpan Perubahan
+                    Update Data
 
                 </button>
 
+                <a href="staff.php"
+                   class="btn btn-secondary">
+
+                    Kembali
+
+                </a>
+
             </form>
+
+            <?php else: ?>
+
+                <div class="alert alert-warning">
+
+                    Staff tidak ditemukan.
+
+                </div>
+
+            <?php endif; ?>
 
         </div>
 
