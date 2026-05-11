@@ -27,11 +27,13 @@ try {
     $stmtAbsen->execute();
 
     $karyawan = [];
+
     $hadir = [];
 
     while ($row = $stmtAbsen->fetch(PDO::FETCH_ASSOC)) {
 
         $karyawan[] = $row['nama_user'];
+
         $hadir[] = $row['hadir'];
     }
 
@@ -48,7 +50,7 @@ try {
     $stmtGaji = $koneksi->prepare("
         SELECT 
             DATE_FORMAT(tanggal_gaji, '%Y-%m') AS bulan,
-            SUM(total) AS total_penggajian
+            SUM(salary) AS total_penggajian
         FROM admin_penggajian
         GROUP BY bulan
         ORDER BY bulan ASC
@@ -57,11 +59,13 @@ try {
     $stmtGaji->execute();
 
     $bulan = [];
+
     $total_penggajian = [];
 
     while ($row = $stmtGaji->fetch(PDO::FETCH_ASSOC)) {
 
         $bulan[] = $row['bulan'];
+
         $total_penggajian[] = $row['total_penggajian'];
     }
 
@@ -76,9 +80,13 @@ try {
 <head>
 
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Dashboard Grafik</title>
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>
+    Dashboard Grafik
+</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -124,7 +132,9 @@ body {
     <div class="chart-box">
 
         <h2 class="chart-title">
+
             Grafik Absensi Karyawan
+
         </h2>
 
         <canvas id="absensiChart"></canvas>
@@ -137,7 +147,9 @@ body {
     <div class="chart-box">
 
         <h2 class="chart-title">
+
             Grafik Total Penggajian Per Bulan
+
         </h2>
 
         <canvas id="gajiChart"></canvas>
@@ -186,6 +198,7 @@ const absensiChart = new Chart(
             plugins: {
 
                 legend: {
+
                     position: 'top'
                 }
             },
@@ -197,6 +210,7 @@ const absensiChart = new Chart(
                     beginAtZero: true,
 
                     ticks: {
+
                         stepSize: 1
                     }
                 }
