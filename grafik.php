@@ -1,93 +1,162 @@
 <?php
-// Koneksi ke database dan include template
+session_start();
+
+// ======================
+// CONFIG & TEMPLATE
+// ======================
 require_once "config.php";
+
 require_once "template_admin/header.php";
 require_once "template_admin/sidebar.php";
 require_once "template_admin/navbar.php";
 require_once "template_admin/footer.php";
 
-// Kelas Database
-class Database {
-    private $host = "localhost";
-    private $db_name = "penggajian";
-    private $username = "root";
-    private $password = "";
-    public $conn;
+// ======================
+// AMBIL DATA GRAFIK
+// ======================
+try {
 
-    public function getConnection() {
-        $this->conn = null;
-        try {
-            $this->conn = new PDO("mysql:host=" . $this->host . ";dbname=" . $this->db_name, $this->username, $this->password);
-            $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        } catch (PDOException $exception) {
-            echo "Connection error: " . $exception->getMessage();
-        }
-        return $this->conn;
-    }
-}
+    $stmt = $koneksi->prepare("
+        SELECT 
+            DATE_FORMAT(tanggal_gaji, '%Y-%m') AS bulan,
+            SUM(total) AS total_penggajian
+        FROM admin_penggajian
+        GROUP BY bulan
+        ORDER BY bulan ASC
+    ");
 
-// Membuat koneksi database
-$database = new Database();
-$conn = $database->getConnection();
-
-if ($conn) {
-    // Query untuk mengambil total penggajian per bulan
-    $query = "SELECT DATE_FORMAT(tanggal_gaji, '%Y-%m') AS bulan, SUM(total) AS total_penggajian 
-              FROM admin_penggajian 
-              GROUP BY bulan 
-              ORDER BY bulan ASC";
-    $stmt = $conn->prepare($query);
     $stmt->execute();
+
     $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Persiapkan data untuk grafik
+    // ======================
+    // ARRAY DATA
+    // ======================
     $bulan = [];
     $total_penggajian = [];
 
     foreach ($data as $row) {
+
         $bulan[] = $row['bulan'];
         $total_penggajian[] = $row['total_penggajian'];
     }
-} else {
-    echo "Koneksi ke database gagal.";
+
+} catch (PDOException $e) {
+
+    die("Terjadi kesalahan database: " . $e->getMessage());
 }
+
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grafik Penggajian</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Grafik Penggajian</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+.container {
+    margin-top: 80px;
+}
+
+.card {
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    background-color: #343a40;
+    color: white;
+    font-weight: bold;
+    text-align: center;
+}
+
+</style>
+
 </head>
+
 <body>
-    <div class="container mt-5">
-        <h2 class="text-center">Grafik Total Penggajian Per Bulan</h2>
-        <canvas id="gajiChart" width="400" height="200"></canvas>
-        <script>
-            var ctx = document.getElementById('gajiChart').getContext('2d');
-            var gajiChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: <?php echo json_encode($bulan); ?>, // Bulan
-                    datasets: [{
-                        label: 'Total Penggajian',
-                        data: <?php echo json_encode($total_penggajian); ?>, // Total penggajian
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                        fill: true,
-                    }]
-                },
-                options: {
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
-        </script>
+
+<div class="container">
+
+    <div class="card">
+
+        <div class="card-header">
+
+            Grafik Total Penggajian Per Bulan
+
+        </div>
+
+        <div class="card-body">
+
+            <canvas id="gajiChart"
+                    width="400"
+                    height="200">
+            </canvas>
+
+        </div>
+
     </div>
+
+</div>
+
+<script>
+
+const ctx =
+    document.getElementById('gajiChart').getContext('2d');
+
+const gajiChart = new Chart(ctx, {
+
+    type: 'line',
+
+    data: {
+
+        labels: <?= json_encode($bulan); ?>,
+
+        datasets: [{
+
+            label: 'Total Penggajian',
+
+            data: <?= json_encode($total_penggajian); ?>,
+
+            borderColor: 'rgba(75, 192, 192, 1)',
+
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+
+            fill: true,
+
+            tension: 0.3
+        }]
+    },
+
+    options: {
+
+        responsive: true,
+
+        plugins: {
+
+            legend: {
+                display: true
+            }
+        },
+
+        scales: {
+
+            y: {
+
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+</script>
+
 </body>
 </html>
