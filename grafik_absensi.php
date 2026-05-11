@@ -1,193 +1,244 @@
 <?php
-session_start();
+error_reporting(E_ALL);
 
-// ======================
-// CONFIG & TEMPLATE
-// ======================
+ini_set('display_errors', 1);
+
 require_once "config.php";
 
 require_once "template_admin/header.php";
 require_once "template_admin/sidebar.php";
 require_once "template_admin/navbar.php";
-require_once "template_admin/footer.php";
 
-// ======================
+// =======================
 // DATA ABSENSI
-// ======================
-try {
+// =======================
+$stmt = $koneksi->prepare("
+    SELECT
 
-    $stmtAbsen = $koneksi->prepare("
-        SELECT 
-            nama_user,
-            COUNT(*) AS hadir
-        FROM admin_absen
-        GROUP BY nama_user
-    ");
+        nama_user,
 
-    $stmtAbsen->execute();
+        COUNT(*) AS hadir
 
-    $karyawan = [];
+    FROM admin_absen
 
-    $hadir = [];
+    GROUP BY nama_user
+");
 
-    while ($row = $stmtAbsen->fetch(PDO::FETCH_ASSOC)) {
+$stmt->execute();
 
-        $karyawan[] = $row['nama_user'];
+$karyawan = [];
 
-        $hadir[] = $row['hadir'];
-    }
+$hadir = [];
 
-} catch (PDOException $e) {
+while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
 
-    die("Error Absensi: " . $e->getMessage());
+    $karyawan[] =
+        $row['nama_user'];
+
+    $hadir[] =
+        $row['hadir'];
 }
 
-// ======================
-// DATA PENGGAJIAN
-// ======================
-try {
+// =======================
+// DATA GAJI
+// =======================
+$stmt2 = $koneksi->prepare("
+    SELECT
 
-    $stmtGaji = $koneksi->prepare("
-        SELECT 
-            DATE_FORMAT(tanggal_gaji, '%Y-%m') AS bulan,
-            SUM(salary) AS total_penggajian
-        FROM admin_penggajian
-        GROUP BY bulan
-        ORDER BY bulan ASC
-    ");
+        DATE_FORMAT(
+            tanggal_gaji,
+            '%Y-%m'
+        ) AS bulan,
 
-    $stmtGaji->execute();
+        SUM(salary) AS total_gaji
 
-    $bulan = [];
+    FROM admin_penggajian
 
-    $total_penggajian = [];
+    GROUP BY bulan
 
-    while ($row = $stmtGaji->fetch(PDO::FETCH_ASSOC)) {
+    ORDER BY bulan ASC
+");
 
-        $bulan[] = $row['bulan'];
+$stmt2->execute();
 
-        $total_penggajian[] = $row['total_penggajian'];
-    }
+$bulan = [];
 
-} catch (PDOException $e) {
+$total_gaji = [];
 
-    die("Error Penggajian: " . $e->getMessage());
+while ($row = $stmt2->fetch(PDO::FETCH_ASSOC)) {
+
+    $bulan[] =
+        $row['bulan'];
+
+    $total_gaji[] =
+        $row['total_gaji'];
 }
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
+<div class="container-fluid mt-4">
 
-<meta charset="UTF-8">
+<br>
+<br>
+<br>
+<br>
 
-<meta name="viewport"
-      content="width=device-width, initial-scale=1.0">
+<center>
 
-<title>
-    Dashboard Grafik
-</title>
+    <h4 class="mb-4">
+        📊 Grafik Absensi
+    </h4>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</center>
 
-<style>
+<div class="card shadow mb-4">
 
-body {
-    font-family: Arial, sans-serif;
-    background-color: #f4f7fc;
-}
+    <div class="card-body">
 
-.container-custom {
-    width: 90%;
-    margin: auto;
-    margin-top: 100px;
-}
-
-.chart-box {
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    margin-bottom: 40px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
-.chart-title {
-    text-align: center;
-    margin-bottom: 20px;
-    font-weight: bold;
-    color: #333;
-}
-
-</style>
-
-</head>
-
-<body>
-
-<div class="container-custom">
-
-    <!-- ======================
-         GRAFIK ABSENSI
-    ======================= -->
-    <div class="chart-box">
-
-        <h2 class="chart-title">
-
-            Grafik Absensi Karyawan
-
-        </h2>
-
-        <canvas id="absensiChart"></canvas>
-
-    </div>
-
-    <!-- ======================
-         GRAFIK PENGGAJIAN
-    ======================= -->
-    <div class="chart-box">
-
-        <h2 class="chart-title">
-
-            Grafik Total Penggajian Per Bulan
-
-        </h2>
-
-        <canvas id="gajiChart"></canvas>
+        <canvas id="absensiChart"
+                height="100">
+        </canvas>
 
     </div>
 
 </div>
 
+<center>
+
+    <h4 class="mb-4">
+        💰 Grafik Penggajian
+    </h4>
+
+</center>
+
+<div class="card shadow">
+
+    <div class="card-body">
+
+        <canvas id="gajiChart"
+                height="100">
+        </canvas>
+
+    </div>
+
+</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
 
-// ======================
+// =======================
 // GRAFIK ABSENSI
-// ======================
-const absensiChart = new Chart(
+// =======================
+new Chart(
+
     document.getElementById('absensiChart'),
+
     {
+
         type: 'bar',
 
         data: {
 
-            labels: <?= json_encode($karyawan); ?>,
+            labels:
+                <?= json_encode($karyawan); ?>,
 
             datasets: [{
 
-                label: 'Absensi Karyawan',
+                label:
+                    'Jumlah Hadir',
 
-                data: <?= json_encode($hadir); ?>,
+                data:
+                    <?= json_encode($hadir); ?>,
 
                 backgroundColor: [
-                    'rgba(0, 0, 128, 0.8)',
-                    'rgba(169, 169, 169, 0.8)',
-                    'rgba(255, 165, 0, 0.8)',
-                    'rgba(0, 0, 128, 0.8)',
-                    'rgba(169, 169, 169, 0.8)',
-                    'rgba(255, 165, 0, 0.8)'
+
+                    'rgba(0, 0, 128, 0.9)',
+
+                    'rgba(169, 169, 169, 0.9)',
+
+                    'rgba(255, 165, 0, 0.9)',
+
+                    'rgba(0, 0, 128, 0.9)',
+
+                    'rgba(169, 169, 169, 0.9)',
+
+                    'rgba(255, 165, 0, 0.9)'
                 ],
 
-                borderWidth: 1
+                borderRadius: 10
+            }]
+        },
+
+        options: {
+
+            responsive: true,
+
+            plugins: {
+
+                legend: {
+
+                    position: 'top'
+                },
+
+                tooltip: {
+
+                    backgroundColor:
+                        'rgba(0,0,0,0.7)',
+
+                    titleColor:
+                        '#fff',
+
+                    bodyColor:
+                        '#fff'
+                }
+            },
+
+            scales: {
+
+                y: {
+
+                    beginAtZero: true
+                }
+            }
+        }
+    }
+);
+
+// =======================
+// GRAFIK GAJI
+// =======================
+new Chart(
+
+    document.getElementById('gajiChart'),
+
+    {
+
+        type: 'line',
+
+        data: {
+
+            labels:
+                <?= json_encode($bulan); ?>,
+
+            datasets: [{
+
+                label:
+                    'Total Gaji',
+
+                data:
+                    <?= json_encode($total_gaji); ?>,
+
+                borderColor:
+                    'rgba(255,165,0,1)',
+
+                backgroundColor:
+                    'rgba(255,165,0,0.2)',
+
+                tension: 0.4,
+
+                fill: true
             }]
         },
 
@@ -207,52 +258,6 @@ const absensiChart = new Chart(
 
                 y: {
 
-                    beginAtZero: true,
-
-                    ticks: {
-
-                        stepSize: 1
-                    }
-                }
-            }
-        }
-    }
-);
-
-// ======================
-// GRAFIK PENGGAJIAN
-// ======================
-const gajiChart = new Chart(
-    document.getElementById('gajiChart'),
-    {
-        type: 'bar',
-
-        data: {
-
-            labels: <?= json_encode($bulan); ?>,
-
-            datasets: [{
-
-                label: 'Total Penggajian',
-
-                data: <?= json_encode($total_penggajian); ?>,
-
-                backgroundColor: 'rgba(0, 0, 128, 0.6)',
-
-                borderColor: 'rgba(0, 0, 128, 1)',
-
-                borderWidth: 1
-            }]
-        },
-
-        options: {
-
-            responsive: true,
-
-            scales: {
-
-                y: {
-
                     beginAtZero: true
                 }
             }
@@ -262,5 +267,6 @@ const gajiChart = new Chart(
 
 </script>
 
-</body>
-</html>
+<?php
+require_once "template_admin/footer.php";
+?>
