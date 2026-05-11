@@ -1,38 +1,110 @@
 <?php
 session_start();
 
-// Termasuk file koneksi database dan file auth.php
-include 'config.php';
-include 'auth.php';
+require_once 'Database.php';
+require_once 'auth.php';
 
-// Proses login
+// ======================
+// CEK METHOD
+// ======================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $NIP = $_POST['NIP'];
-    $password = $_POST['password'];
 
-    // Buat objek Auth
+    // ======================
+    // AMBIL INPUT
+    // ======================
+    $NIP = trim($_POST['NIP']);
+    $password = trim($_POST['password']);
+
+    // ======================
+    // VALIDASI INPUT
+    // ======================
+    if (empty($NIP) || empty($password)) {
+
+        echo "
+        <script>
+            alert('NIP dan Password wajib diisi!');
+            window.location.assign('form_login.php');
+        </script>
+        ";
+
+        exit;
+    }
+
+    // ======================
+    // KONEKSI DATABASE
+    // ======================
+    $db = new Database();
+    $koneksi = $db->getConnection();
+
+    // ======================
+    // LOGIN AUTH
+    // ======================
     $auth = new Auth($koneksi, $NIP, $password);
+
     $user = $auth->login();
 
+    // ======================
+    // LOGIN BERHASIL
+    // ======================
     if ($user) {
-        // Enkapsulasi data ke session
+
         $_SESSION['id_user'] = $user['id_user'];
         $_SESSION['NIP'] = $user['NIP'];
         $_SESSION['nama_user'] = $user['nama_user'];
         $_SESSION['hak'] = $user['hak'];
 
-        // Redirect berdasarkan hak akses
+        // ======================
+        // REDIRECT ROLE
+        // ======================
         if ($user['hak'] === 'karyawan') {
+
             header('Location: grafik_karyawan.php');
             exit;
+
         } elseif ($user['hak'] === 'admin') {
+
             header('Location: grafik_absensi.php');
             exit;
+
+        } else {
+
+            echo "
+            <script>
+                alert('Role user tidak dikenali!');
+                window.location.assign('form_login.php');
+            </script>
+            ";
+
+            exit;
         }
+
     } else {
-        echo "<script>alert('NIP atau password salah!'); window.location.assign('form_login.php');</script>";
+
+        // ======================
+        // LOGIN GAGAL
+        // ======================
+        echo "
+        <script>
+            alert('NIP atau password salah!');
+            window.location.assign('form_login.php');
+        </script>
+        ";
+
+        exit;
     }
+
 } else {
-    echo "Akses tidak diizinkan.";
+
+    // ======================
+    // AKSES LANGSUNG
+    // ======================
+    echo "
+    <script>
+        alert('Akses tidak diizinkan!');
+        window.location.assign('form_login.php');
+    </script>
+    ";
+
+    exit;
 }
 ?>
